@@ -1,3 +1,4 @@
+import itertools
 import flet as ft
 from flet import (
     Page,
@@ -60,14 +61,127 @@ class DataAnalisisApp(UserControl):
             ],
         )
         self.page.appbar = self.appbar
-        self.dlg_modal = ft.AlertDialog(
+        self.dlg_modal_add_tab = ft.AlertDialog(
             modal=True,
             title=ft.Text("Добавить вкладку"),
-            content=TextField(label="Название вкладки", ),
+            content=TextField(label="Название вкладки", autofocus=True, on_submit=self.add_tab),
+            actions = [
+                ft.TextButton("Добавить", on_click=self.add_tab),
+                ft.TextButton("Отмена", on_click=self.close_dlg)
+            ],
             actions_alignment=ft.MainAxisAlignment.END,
             on_dismiss=lambda e: print("Modal dialog dismissed!"),
         )
-        self.tabs = Tabs(scrollable=True)
+        self.tabs_bar = Tabs()
+        self.graphic_area = Row(
+            controls=[
+                Container(
+                    border=ft.border.all(colors.BLACK),
+                    content=Column(
+                        controls=[
+                            Container(
+                                border=ft.border.all(colors.BLACK),
+                                content=Column(
+                                    controls=[
+                                        Text("Данные"),
+                                        Row(
+                                            controls=[
+                                                ft.Dropdown(
+                                                    options=[
+                                                        ft.dropdown.Option("Trends"),
+                                                        ft.dropdown.Option("Загрузить свои данные"),
+                                                    ]
+                                                ),
+                                                IconButton(icon="add", on_click=None),
+                                            ]
+                                        )
+                                    ]
+                                )
+                            ),
+                            Container(
+                                border=ft.border.all(colors.BLACK),
+                                content=Column(
+                                    controls=[
+                                        Text("Обработка"),
+                                        Row(
+                                            controls=[
+                                                ft.Dropdown(
+                                                    options=[
+                                                        ft.dropdown.Option("Смешение"),
+                                                        ft.dropdown.Option("Шум"),
+                                                    ]
+                                                ),
+                                                IconButton(icon="add", on_click=None),
+                                            ]
+                                        )
+                                    ]
+                                )
+                            ),
+                            Container(
+                                border=ft.border.all(colors.BLACK),
+                                content=Column(
+                                    controls=[
+                                        Text("Анализ"),
+                                        Row(
+                                            controls=[
+                                                ft.Dropdown(
+                                                    options=[
+                                                        ft.dropdown.Option("Аналитическая функция 1"),
+                                                        ft.dropdown.Option("Аналитическая функция 2"),
+                                                        ft.dropdown.Option("Аналитическая функция 3"),
+                                                    ]
+                                                ),
+                                                IconButton(icon="add", on_click=None),
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+                        ]
+                    )
+                ),
+                Container(
+                    border=ft.border.all(colors.BLACK),
+                    content=Column(
+                        controls=[
+                            Row(
+                                controls=[
+                                    Text('Параметры'),
+                                    IconButton(icon="KEYBOARD_ARROW_LEFT"),
+                                    IconButton(icon="KEYBOARD_ARROW_RIGHT"),
+                                ]
+                            ),
+                            Column(
+                                controls=[
+                                    Text('Параметр 1'),
+                                    Text('Параметр 2'),
+                                    Text('Параметр 3')
+                                ]
+                            )
+                        ]
+                    )
+                ),
+                Container(
+                    border=ft.border.all(colors.BLACK),
+                    content=Column(
+                        controls=[
+                            Tabs(
+                                tabs=[
+                                    Tab(text="Tab 1",),
+                                    Tab(text="Tab 2",),
+                                    Tab(text="Tab 3",)
+                                ]
+                            )
+                        ]
+                    )
+                )
+            ]
+        )
+        self.image_area = Row(
+            controls=[
+                Text('Область для работы с изображениями')
+            ]
+        )
 
 
     def build(self):
@@ -77,60 +191,65 @@ class DataAnalisisApp(UserControl):
         #     tabs=self.tabs
         # )
         # return self.
-        return self.tabs
+        return self.tabs_bar
     
     def add_tab(self, e):
-        button_name = e.control.data
+        button_name = self.dlg_modal_add_tab.data
         pic = "question_mark"
-        if button_name == "Graphic":
-            pic = "area_chart"
-        elif button_name == "Image":
-            pic = "image"
+        tab_content = None
+        match button_name:
+            case "Graphic":
+                pic = "area_chart"
+                tab_content = self.graphic_area
+            case "Image":
+                pic = "image"
+                tab_content = self.image_area
             
-        text=self.dlg_modal.content.value
+        text = self.dlg_modal_add_tab.content.value
+        text = text if text else 'Вкладка ' + button_name
         
+
+        tab_ref = ft.Ref[Tab]()
         tab = Tab(
-            text=self.dlg_modal.content.value,
+            ref=tab_ref,
             tab_content=Row(
                 controls=[
                     Icon(name=pic),
                     Text(value=text),
-                    IconButton(icon=icons.CLOSE, on_click=None),
+                    IconButton(icon=icons.CLOSE, data=tab_ref, on_click=self.delete_tab),
                 ]
             ),
-            content=Column(
-                controls=[
-                    Text("param1 "+text),
-                    Text("param2 "+text),
-                    Text("param3 "+text),
-                ]
-            ),
+            content=tab_content
         )
-        self.tabs.tabs.append(tab)
+        self.tabs_bar.tabs.append(tab)
+        self.tabs_bar.selected_index = len(self.tabs_bar.tabs) - 1
         self.close_dlg(self)
-        
+    
+    def delete_tab(self, e):
+        deleted_tab = e.control.data.current
+        self.tabs_bar.tabs.remove(deleted_tab)
+        self.update()
+
 
     def open_dlg_modal(self, e):
         button_name = e.control.data
-        if button_name == "Graphic":
-            self.dlg_modal.title.value = "Добавить график"
-        elif button_name == "Image":
-            self.dlg_modal.title.value  = "Добавить изображение"
-        else:
-            self.dlg_modal.title.value = "Добавить вкладку"
-
-        self.dlg_modal.actions = [
-            ft.TextButton("Добавить", data=button_name, on_click=self.add_tab),
-            ft.TextButton("Отмена", data=button_name, on_click=self.close_dlg)
-        ]
+        match button_name:
+            case "Graphic":
+                self.dlg_modal_add_tab.title.value = "Добавить график"
+            case "Image":
+                self.dlg_modal_add_tab.title.value = "Добавить изображение"
+            case _:
+                self.dlg_modal_add_tab.title.value = "Добавить вкладку"
         
-        self.page.dialog = self.dlg_modal
-        self.dlg_modal.open = True
+        self.dlg_modal_add_tab.data = button_name
+        self.page.dialog = self.dlg_modal_add_tab
+        self.dlg_modal_add_tab.open = True
         self.page.update()
 
     def close_dlg(self, e):
-        self.dlg_modal.open = False
-        self.dlg_modal.content.value = ""
+        self.dlg_modal_add_tab.open = False
+        self.dlg_modal_add_tab.data = ''
+        self.dlg_modal_add_tab.content.value = ''
         self.page.update()
         self.update()
 

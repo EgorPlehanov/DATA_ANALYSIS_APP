@@ -3,9 +3,6 @@ import flet as ft
 from flet import (
     Page,
     UserControl,
-    Column,
-    colors,
-    theme,
     Container,
     Row,
     AppBar,
@@ -16,11 +13,9 @@ from flet import (
     TextField,
     Tabs,
     Tab,
-    Icon
-) 
-from app_layout import AppLayout
-
-import json
+    Icon,
+)
+from graphic_area import GraphicArea
 
 
 class DataAnalisisApp(UserControl):
@@ -73,103 +68,21 @@ class DataAnalisisApp(UserControl):
             on_dismiss=lambda e: print("Modal dialog dismissed!"),
         )
         self.tabs_bar = Tabs()
-        self.graphic_area = Row(
+        self.image_area = Row(
             controls=[
                 Container(
-                    border=ft.border.all(colors.BLACK),
-                    content=Column(
+                    border=ft.border.all(ft.colors.RED),
+                    content=Row(
                         controls=[
-                            Container(
-                                border=ft.border.all(colors.BLACK),
-                                content=Column(
-                                    controls=[
-                                        Text("Данные"),
-                                        Row(
-                                            controls=[
-                                                ft.Dropdown(
-                                                    options=[
-                                                        ft.dropdown.Option("Trends"),
-                                                        ft.dropdown.Option("Загрузить свои данные"),
-                                                    ]
-                                                ),
-                                                IconButton(icon="add", on_click=None),
-                                            ]
-                                        )
-                                    ]
-                                )
-                            ),
-                            Container(
-                                border=ft.border.all(colors.BLACK),
-                                content=Column(
-                                    controls=[
-                                        Text("Обработка"),
-                                        Row(
-                                            controls=[
-                                                ft.Dropdown(
-                                                    options=[
-                                                        ft.dropdown.Option("Смешение"),
-                                                        ft.dropdown.Option("Шум"),
-                                                    ]
-                                                ),
-                                                IconButton(icon="add", on_click=None),
-                                            ]
-                                        )
-                                    ]
-                                )
-                            ),
-                            Container(
-                                border=ft.border.all(colors.BLACK),
-                                content=Column(
-                                    controls=[
-                                        Text("Анализ"),
-                                        Row(
-                                            controls=[
-                                                ft.Dropdown(
-                                                    options=[
-                                                        ft.dropdown.Option("Аналитическая функция 1"),
-                                                        ft.dropdown.Option("Аналитическая функция 2"),
-                                                        ft.dropdown.Option("Аналитическая функция 3"),
-                                                    ]
-                                                ),
-                                                IconButton(icon="add", on_click=None),
-                                            ]
-                                        )
-                                    ]
-                                )
-                            )
-                        ]
-                    )
-                ),
-                Container(
-                    border=ft.border.all(colors.BLACK),
-                    content=Column(
-                        controls=[
-                            Row(
+                            ft.ListView(
                                 controls=[
-                                    Text('Параметры'),
-                                    IconButton(icon="KEYBOARD_ARROW_LEFT"),
-                                    IconButton(icon="KEYBOARD_ARROW_RIGHT"),
+                                    Text('Область для работы с изображениями'),
+                                    Text('Область для работы с изображениями'),
                                 ]
                             ),
-                            Column(
+                            ft.ListView(
                                 controls=[
-                                    Text('Параметр 1'),
-                                    Text('Параметр 2'),
-                                    Text('Параметр 3')
-                                ]
-                            )
-                        ]
-                    )
-                ),
-                Container(
-                    border=ft.border.all(colors.BLACK),
-                    content=Column(
-                        controls=[
-                            Tabs(
-                                tabs=[
-                                    Tab(text="Tab 1",),
-                                    Tab(text="Tab 2",),
-                                    Tab(text="Tab 3",)
+                                    Text('Область для работы с изображениями'),
                                 ]
                             )
                         ]
@@ -177,11 +90,7 @@ class DataAnalisisApp(UserControl):
                 )
             ]
         )
-        self.image_area = Row(
-            controls=[
-                Text('Область для работы с изображениями')
-            ]
-        )
+        
 
 
     def build(self):
@@ -200,7 +109,7 @@ class DataAnalisisApp(UserControl):
         match button_name:
             case "Graphic":
                 pic = "area_chart"
-                tab_content = self.graphic_area
+                tab_content = GraphicArea(self)
             case "Image":
                 pic = "image"
                 tab_content = self.image_area

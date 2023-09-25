@@ -59,7 +59,7 @@ Model.functions_info = {
                     "type": "slider",
                     "min": 0.1,
                     "max": 10.0,
-                    "divisions": 0.1,
+                    "step": 0.1,
                     "default": 1.0,
                     "value": 1.0
                 },
@@ -68,7 +68,7 @@ Model.functions_info = {
                     "type": "slider",
                     "min": 0.1,
                     "max": 10.0,
-                    "divisions": 0.1,
+                    "step": 0.1,
                     "default": 1.0,
                     "value": 1.0
                 },
@@ -77,7 +77,7 @@ Model.functions_info = {
                     "type": "slider",
                     "min": 1,
                     "max": 10,
-                    "divisions": 1,
+                    "step": 1,
                     "default": 1,
                     "value": 1
                 },
@@ -86,7 +86,7 @@ Model.functions_info = {
                     "type": "slider",
                     "min": 100,
                     "max": 10000,
-                    "divisions": 100,
+                    "step": 100,
                     "default": 100,
                     "value": 100
                 },

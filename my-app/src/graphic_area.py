@@ -46,9 +46,10 @@ class FunctionCard(UserControl):
         self.card_content = Row(
             controls=[
                 Column(
+                    expand=True,
                     controls=[
                         Row(
-                            alignment=MainAxisAlignment.NONE,
+                            alignment=MainAxisAlignment.SPACE_BETWEEN,
                             controls=[
                                 Text(value='Функция: ' + self.name),
                                 IconButton(
@@ -109,27 +110,46 @@ class FunctionCard(UserControl):
             param_editor = None
             match param['type']:
                 case "dropdown":
-                    param_editor = Dropdown(
-                        options=[dropdown.Option(key=option, text=option) for option in param['options']]
-                    )
+                    param_editor = [
+                        Dropdown(
+                            dense=True,
+                            label = param['title'],
+                            options=[dropdown.Option(key=option, text=option) for option in param['options']],
+                            value=param['options'][0],
+                        )
+                    ]
                 case "slider":
-                    param_editor = Slider(
-                        min=param['min'],
-                        max=param['max'],
-                        value=param['value'],
-                        divisions=param['divisions'],
-                        label="{value}%"
-                    )
+                    ref_slider_text = Ref[Text]()
+                    param_editor = [
+                        Column(
+                            controls=[
+                                Text(
+                                    ref=ref_slider_text,
+                                    value=f'{param["title"]}: {param["value"]}',
+                                ),
+                                Slider(
+                                    min=param['min'],
+                                    max=param['max'],
+                                    value=param['value'],
+                                    divisions=int((param['max'] - param['min']) / param['step']),
+                                    label='{value}',
+                                    data={"slider_text": ref_slider_text, 'slider_name': param['title']},
+                                    on_change=self._slider_changed,
+                                )
+                            ]
+                        )
+                    ]
                     
             parameters_view_list.append(
                 Row(
-                    controls=[
-                        Text(value=param['title']),
-                        param_editor
-                    ]
+                    controls=param_editor
                 )
             )
         return parameters_view_list
+    
+    def _slider_changed(self, e):
+        e.control.data['slider_text'].current.value = f"{e.control.data['slider_name']}: {round(e.control.value, 3)}"
+        self.graphic_area.update()
 
     # def my_on_click(self, e):
     #     self.function_card.border = border.all(color=colors.BLUE)
@@ -176,6 +196,7 @@ class GraphicArea(Row):
                                         Dropdown(
                                             ref=self.ref_dropdown_data,
                                             dense=True,
+                                            value="trend",
                                             options=[
                                                 dropdown.Option(key='trend', text="Trends"),
                                                 dropdown.Option(key='download', text="Загрузить свои данные"),
@@ -246,25 +267,30 @@ class GraphicArea(Row):
                 ]
             )
         )
+        self.parameters_menu = Container(
+            padding=5,
+            alignment=ft.alignment.top_center,
+            border=border.all(colors.BLACK),
+            content=Column(
+                tight=True,
+                scroll=ScrollMode.AUTO,
+                controls=[
+                    Row(
+                        controls=[
+                            Text('Параметры'),
+                            IconButton(icon="KEYBOARD_ARROW_LEFT"),
+                            IconButton(icon="KEYBOARD_ARROW_RIGHT"),
+                        ]
+                    ),
+                    Column(
+                        controls=self.list_function_parameters
+                    )
+                ]
+            )
+        )
         self.controls = [
             self.function_menu,
-            Container(
-                border=border.all(colors.BLACK),
-                content=Column(
-                    controls=[
-                        Row(
-                            controls=[
-                                Text('Параметры'),
-                                IconButton(icon="KEYBOARD_ARROW_LEFT"),
-                                IconButton(icon="KEYBOARD_ARROW_RIGHT"),
-                            ]
-                        ),
-                        Column(
-                            controls=self.list_function_parameters
-                        )
-                    ]
-                )
-            ),
+            self.parameters_menu,
             Container(
                 expand=True,
                 border=border.all(colors.BLACK),

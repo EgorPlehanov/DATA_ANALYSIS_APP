@@ -94,12 +94,6 @@ class DataAnalisisApp(UserControl):
 
 
     def build(self):
-        # self.layout = AppLayout(
-        #     app=self,
-        #     page=self.page,
-        #     tabs=self.tabs
-        # )
-        # return self.
         return self.tabs_bar
     
     def add_tab(self, e):
@@ -109,7 +103,7 @@ class DataAnalisisApp(UserControl):
         match button_name:
             case "Graphic":
                 pic = "area_chart"
-                tab_content = GraphicArea(self)
+                tab_content = GraphicArea(self, self.page)
             case "Image":
                 pic = "image"
                 tab_content = self.image_area
@@ -138,7 +132,6 @@ class DataAnalisisApp(UserControl):
         deleted_tab = e.control.data.current
         self.tabs_bar.tabs.remove(deleted_tab)
         self.update()
-
 
     def open_dlg_modal(self, e):
         button_name = e.control.data

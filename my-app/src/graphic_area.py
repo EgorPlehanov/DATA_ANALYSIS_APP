@@ -152,7 +152,6 @@ class FunctionCard(UserControl):
         self.graphic_area.update()
 
     # def my_on_click(self, e):
-    #     self.function_card.border = border.all(color=colors.BLUE)
     #     self.function_card.bgcolor = colors.BLACK26
     #     self.update()
 
@@ -167,6 +166,7 @@ class GraphicArea(Row):
         super().__init__()
         self.app = app
         self.page = page
+        self.spacing = 0
         self.ref_function_card = Ref[Container]()
         self.list_functions_data = []
         self.list_functions_edit = []
@@ -177,7 +177,7 @@ class GraphicArea(Row):
         self.ref_dropdown_analis = Ref[Dropdown]()
         self.function_menu = Container(
             bgcolor=colors.BLACK26,
-            border=border.all(color=colors.ORANGE),
+            # border=border.all(color=colors.ORANGE),
             alignment=ft.alignment.top_center,
             width=350,
             content=Column(
@@ -185,7 +185,7 @@ class GraphicArea(Row):
                 scroll=ScrollMode.AUTO,
                 controls=[
                     Container(
-                        border=border.all(color=colors.GREEN),
+                        # border=border.all(color=colors.GREEN),
                         bgcolor=colors.BLUE_GREY_900,
                         padding=5,
                         content=Column(
@@ -270,6 +270,7 @@ class GraphicArea(Row):
         self.parameters_menu = Container(
             padding=5,
             alignment=ft.alignment.top_center,
+            bgcolor=colors.BLACK12,
             border=border.all(colors.BLACK),
             content=Column(
                 tight=True,

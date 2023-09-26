@@ -14,11 +14,12 @@ from flet import (
     Tabs,
     Tab,
     Icon,
+    WebRenderer,
 )
 from graphic_area import GraphicArea
 
 
-class DataAnalisisApp(UserControl):
+class DataAnalysisApp(UserControl):
     def __init__(self, page: Page):
         super().__init__()
         self.page = page
@@ -161,9 +162,9 @@ def main(page: Page):
     page.title = "Data Analysis App"
     page.padding = 0
     # page.bgcolor = colors.BLUE_200
-    app = DataAnalisisApp(page)
+    app = DataAnalysisApp(page)
     page.add(app)
     page.update()
 
-ft.app(main)
+ft.app(target=main,)
 

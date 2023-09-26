@@ -15,21 +15,22 @@ from flet import (
     Ref,
     Slider,
 )
-# import flet as ft
+import flet as ft
 from model import Model
 import datetime
 
 
 class FunctionCard(UserControl):
-    def __init__(self, graphic_area, app, page, name, on_click_fun=None):
+    def __init__(self, graphic_area, app, page, name, change_selected_function, on_click_delete):
         super().__init__()
         self.app = app
         self.page = page
         self.graphic_area = graphic_area
         self.name = name
         self.selected = False
-        self.on_click = on_click_fun
-        self.ref = None
+        self.change_selected_function = change_selected_function
+        self.on_click_delete = on_click_delete
+        # self.ref = Ref[FunctionCard]()
         self.function = Model.get_info(name, return_type='function')
         self.parameters = Model.get_info(name, return_type='parameters')
 
@@ -51,7 +52,8 @@ class FunctionCard(UserControl):
                                 Text(value='Функция: ' + self.name),
                                 IconButton(
                                     icon=icons.DELETE,
-                                    on_click=None
+                                    data=self,
+                                    on_click=self.on_click_delete
                                 )
                             ]
                         ),
@@ -65,17 +67,15 @@ class FunctionCard(UserControl):
         self.card_view = Container(
             content=self.card_content,
             data=self,
-            on_click=self.on_click,
-            # on_click=self.my_on_click,
+            on_click=self.change_selected_function,
             border = border.all(color=colors.BLACK),
             bgcolor = colors.BLACK54,
             border_radius = 10,
             padding=5,
         )
-
-        
         self.parameters_view = Container(
             visible=False,
+            data=self,
             content=Column(
                 controls=self._get_parameters_view_list()
             )
@@ -85,7 +85,7 @@ class FunctionCard(UserControl):
     def build(self):
         return self.card_view
 
-    def on_click_selected(self, e):
+    def change_selected(self, e):
         if self.selected:
             self.card_view.border = border.all(color=colors.BLACK)
             self.card_view.bgcolor = colors.BLACK54
@@ -142,6 +142,20 @@ class FunctionCard(UserControl):
                             ]
                         )
                     ]
+                case 'file_picker':
+                    param_editor=[
+                        Column(
+                            controls=[
+                                Text(
+                                    value=f'{param["title"]}',
+                                ),
+                                ft.FilePicker(
+                                    on_upload=None
+                                )
+                            ]
+                        )
+                    ]
+                    
                     
             parameters_view_list.append(
                 Row(

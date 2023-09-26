@@ -41,6 +41,9 @@ class Model:
             data = Model.trend_function_nonlinear_falling(t, a, b)
 
         return t, data
+    
+    def data_download():
+        pass
 
     
 Model.functions_info = {
@@ -61,7 +64,7 @@ Model.functions_info = {
                     "max": 10.0,
                     "step": 0.1,
                     "default": 1.0,
-                    "value": 1.0
+                    "value": 1.0,
                 },
                 "b": {
                     "title": "Параметр b",
@@ -70,7 +73,7 @@ Model.functions_info = {
                     "max": 10.0,
                     "step": 0.1,
                     "default": 1.0,
-                    "value": 1.0
+                    "value": 1.0,
                 },
                 "step": {
                     "title": "Интервал Δ",
@@ -79,7 +82,7 @@ Model.functions_info = {
                     "max": 10,
                     "step": 1,
                     "default": 1,
-                    "value": 1
+                    "value": 1,
                 },
                 "N": {
                     "title": "Длина данных N",
@@ -88,8 +91,18 @@ Model.functions_info = {
                     "max": 10000,
                     "step": 100,
                     "default": 100,
-                    "value": 100
+                    "value": 100,
                 },
             }
         },
+        'data_download': {
+            'function': Model.data_download,
+            'parameters': {
+                'input_data': {
+                    "title": "Выбор файла данных",
+                    "type": "file_picker",
+                    "value": None,
+                }
+            }
+        }
     }

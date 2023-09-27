@@ -35,18 +35,8 @@ class FunctionCard(UserControl):
         self.on_change_selected = on_change_selected
         self.on_click_delete = on_click_delete
 
-        # self.ref = Ref[FunctionCard]()
-
         # Функция карточки
         self.function = Function(self.function_name)
-        # self.function = Model.get_info(name, return_type='function')
-        # self.parameters = Model.get_info(name, return_type='parameters')
-        # self.parameters_names = list(self.parameters.keys())
-
-        # Установка атрибутов класса на основе параметров функции
-        # for param_name, param_info in self.parameters.items():
-            # self.set_parameter_value(self, param_name, param_info['value'])
-            # setattr(self, param_name, param_info['value'])
 
         # Содержимое карточки функции
         self.ref_card_parameters_text = Ref[Markdown]()
@@ -147,7 +137,10 @@ class FunctionCard(UserControl):
                                 dropdown.Option(key=option['key'], text=option['text']) for option in param['options']
                             ],
                             value=current_parameters[param_name],
-                            on_change=None#self._change_dropdown_title
+                            data={
+                                'param_name': param_name
+                            },
+                            on_change=self.on_dropdown_change
                         )
                     ]
                 case "slider":                    
@@ -211,7 +204,7 @@ class FunctionCard(UserControl):
 
     def _change_slider_title(self, e) -> None:
         '''
-        Обнавляет значение параметра в заголовке слайдера
+        Обнавляет значение параметра в экземпляре класса Function, заголовке слайдера и карточке функции
 
         Args:
             e (Event): Событие изменения слайдера.
@@ -224,6 +217,19 @@ class FunctionCard(UserControl):
         slider_title.value = f"{slider_param_title}: {slider_param_value}"
         self.function.set_parameter_value(slider_param_name, slider_param_value) # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
         
+        self.update_card_parameters_text()
+        self.graphic_area.update()
+
+
+    def on_dropdown_change(self, e) -> None:
+        '''
+        Обновляет значение параметра в экземпляре класса Function и карточке функции
+        '''
+        dropdown_param_name = e.control.data['param_name']
+        dropdown_param_value = e.control.value
+        
+        self.function.set_parameter_value(dropdown_param_name, dropdown_param_value)
+
         self.update_card_parameters_text()
         self.graphic_area.update()
 

@@ -1,4 +1,3 @@
-import itertools
 import flet as ft
 from flet import (
     Page,
@@ -14,7 +13,6 @@ from flet import (
     Tabs,
     Tab,
     Icon,
-    WebRenderer,
 )
 from graphic_area import GraphicArea
 
@@ -57,6 +55,7 @@ class DataAnalysisApp(UserControl):
             ],
         )
         self.page.appbar = self.appbar
+
         self.dlg_modal_add_tab = ft.AlertDialog(
             modal=True,
             title=ft.Text("Добавить вкладку"),
@@ -69,6 +68,8 @@ class DataAnalysisApp(UserControl):
             on_dismiss=lambda e: print("Modal dialog dismissed!"),
         )
         self.tabs_bar = Tabs()
+
+        # ВРЕМЕННОЕ ПРЕДСТАВЛЕНИЕ ВКЛАДКИ РАБОТЫ С ИЗОБРАЖЕНИЯМИ ->
         self.image_area = Row(
             controls=[
                 Container(
@@ -91,50 +92,85 @@ class DataAnalysisApp(UserControl):
                 )
             ]
         )
-        
 
 
-    def build(self):
+    def build(self) -> Tabs:
+        '''
+        Строит вкладки и возвращает панель вкладок.
+
+        :return: Экземпляр класса Tabs, представляющий панель вкладок.
+        :rtype: Tabs
+        '''
         return self.tabs_bar
     
-    def add_tab(self, e):
-        button_name = self.dlg_modal_add_tab.data
-        pic = "question_mark"
-        tab_content = None
-        match button_name:
-            case "Graphic":
-                pic = "area_chart"
-                tab_content = GraphicArea(self, self.page)
-            case "Image":
-                pic = "image"
-                tab_content = self.image_area
-            
-        text = self.dlg_modal_add_tab.content.value
-        text = text if text else 'Вкладка ' + button_name
-        
 
+    def add_tab(self, e) -> None:
+        '''
+        Добавляет вкладку в список вкладок tabs_bar
+
+        Args:
+            e (Event): Событие клика на кнопку добавления вкладки в диалоговом окне.
+        '''
+        # Определяем тип вкладки на основе данных из диалогового окна
+        tab_type = self.dlg_modal_add_tab.data
+
+        # Значения по умолчанию для значков и виджета содержимого вкладки
+        tab_icon = "question_mark"
+        tab_content_widget = None
+
+        # Определяем значок и виджет содержимого вкладки на основе типа
+        match tab_type:
+            case "Graphic":
+                tab_icon = "area_chart"
+                tab_content_widget = GraphicArea(self, self.page)
+            case "Image":
+                tab_icon = "image"
+                tab_content_widget = self.image_area
+        
+        # Определяем заголовок вкладки, используя введенное пользователем значение или значение по умолчанию
+        tab_title = self.dlg_modal_add_tab.content.value
+        tab_title = tab_title if tab_title else 'Вкладка ' + tab_type
+        
+        # Создаем ссылку на вкладку и создаем объект вкладки
         tab_ref = ft.Ref[Tab]()
         tab = Tab(
             ref=tab_ref,
             tab_content=Row(
                 controls=[
-                    Icon(name=pic),
-                    Text(value=text),
+                    Icon(name=tab_icon),
+                    Text(value=tab_title),
                     IconButton(icon=icons.CLOSE, data=tab_ref, on_click=self.delete_tab),
                 ]
             ),
-            content=tab_content
+            content=tab_content_widget
         )
+
+        # Добавляем вкладку в список вкладок и выбираем ее
         self.tabs_bar.tabs.append(tab)
         self.tabs_bar.selected_index = len(self.tabs_bar.tabs) - 1
+
         self.close_dlg(self)
     
-    def delete_tab(self, e):
+
+    def delete_tab(self, e) -> None:
+        '''
+        Удаляет вкладку
+
+        Args:
+            e (Event): Событие клика на кнопку удаления вкладки (x).
+        '''
         deleted_tab = e.control.data.current
         self.tabs_bar.tabs.remove(deleted_tab)
         self.update()
 
-    def open_dlg_modal(self, e):
+
+    def open_dlg_modal(self, e) -> None:
+        '''
+        Открывает диалоговое окно для добавления вкладки
+
+        Args:
+            e (Event): Событие клика на кнопку добавления вкладки.
+        '''
         button_name = e.control.data
         match button_name:
             case "Graphic":
@@ -149,7 +185,14 @@ class DataAnalysisApp(UserControl):
         self.dlg_modal_add_tab.open = True
         self.page.update()
 
-    def close_dlg(self, e):
+
+    def close_dlg(self, e) -> None:
+        '''
+        Закрывает диалоговое окно для добавления вкладки
+
+        Args:
+            e (Event): Событие клика на кнопку закрытия.
+        '''
         self.dlg_modal_add_tab.open = False
         self.dlg_modal_add_tab.data = ''
         self.dlg_modal_add_tab.content.value = ''

@@ -1,3 +1,5 @@
+from typing import Any
+import flet as ft
 from flet import (
     UserControl,
     Container,
@@ -15,64 +17,72 @@ from flet import (
     Ref,
     Slider,
 )
-import flet as ft
-from model import Model
-import datetime
+from function import Function
+
 
 
 class FunctionCard(UserControl):
-    def __init__(self, graphic_area, app, page, name, change_selected_function, on_click_delete):
+    def __init__(self, graphic_area, app, page, function_name, function_type, on_change_selected, on_click_delete):
         super().__init__()
         self.app = app
         self.page = page
         self.graphic_area = graphic_area
-        self.name = name
+        self.function_name = function_name
+        self.function_type = function_type
         self.selected = False
-        self.change_selected_function = change_selected_function
-        self.on_click_delete = on_click_delete
-        # self.ref = Ref[FunctionCard]()
-        self.function = Model.get_info(name, return_type='function')
-        self.parameters = Model.get_info(name, return_type='parameters')
 
-        # self.parameters_text = Text(
-        #     size=10,
-        #     selectable=True,
-        #     no_wrap=False,
-        #     # value=str(self.parameters)
-        #     value = "; ".join([f"{param['title']}: {param['value']}" for param in self.parameters.values()])
-        # )
-        self.card_content = Row(
+        # Функции обработчики нажатий на кнопки карточки функции 
+        self.on_change_selected = on_change_selected
+        self.on_click_delete = on_click_delete
+
+        # self.ref = Ref[FunctionCard]()
+
+        # Функция карточки
+        self.function = Function(self.function_name)
+        # self.function = Model.get_info(name, return_type='function')
+        # self.parameters = Model.get_info(name, return_type='parameters')
+        # self.parameters_names = list(self.parameters.keys())
+
+        # Установка атрибутов класса на основе параметров функции
+        # for param_name, param_info in self.parameters.items():
+            # self.set_parameter_value(self, param_name, param_info['value'])
+            # setattr(self, param_name, param_info['value'])
+
+        # Содержимое карточки функции
+        self.ref_card_parameters_text = Ref[Markdown]()
+        self.card_content = Column(
+            expand=True,
             controls=[
-                Column(
-                    expand=True,
+                Row(
+                    alignment=MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        Row(
-                            alignment=MainAxisAlignment.SPACE_BETWEEN,
-                            controls=[
-                                Text(value='Функция: ' + self.name),
-                                IconButton(
-                                    icon=icons.DELETE,
-                                    data=self,
-                                    on_click=self.on_click_delete
-                                )
-                            ]
-                        ),
-                        Markdown(
-                            value="; ".join(f"*{param['title']}*: **{param['value']}**" for param in self.parameters.values())+'.'+datetime.datetime.now().strftime("%H:%M:%S"),
+                        Text(value='Функция: ' + self.function.name + ' (' + ', '.join(self.function.parameters_names) + ')'),
+                        IconButton(
+                            icon=icons.DELETE,
+                            data=self,
+                            on_click=self.on_click_delete
                         )
                     ]
+                ),
+                Markdown(
+                    ref=self.ref_card_parameters_text,
+                    value=self._get_card_parameters_text()
                 )
             ]
         )
+
+        # Представление карточки функции
         self.card_view = Container(
             content=self.card_content,
             data=self,
-            on_click=self.change_selected_function,
+            on_click=self.on_change_selected,
             border = border.all(color=colors.BLACK),
             bgcolor = colors.BLACK54,
             border_radius = 10,
             padding=5,
         )
+
+        # Представление списка параметров
         self.parameters_view = Container(
             visible=False,
             data=self,
@@ -82,10 +92,17 @@ class FunctionCard(UserControl):
         )
         
 
-    def build(self):
+    def build(self) -> Container:
+        '''
+        Возвращает представление карточки функции
+        
+        Returns:
+            Container: Представление карточки функции
+        '''
         return self.card_view
 
-    def change_selected(self, e):
+
+    def change_selected(self, e) -> None:
         if self.selected:
             self.card_view.border = border.all(color=colors.BLACK)
             self.card_view.bgcolor = colors.BLACK54
@@ -96,12 +113,16 @@ class FunctionCard(UserControl):
             self.parameters_view.visible = True
         self.selected = not self.selected
         self.update()
-
-    def get_parameters(self):
-        return self.parameters_view
     
 
-    def _get_parameters_view_list(self):
+    def _get_parameters_view_list(self) -> list:
+        '''
+        Создает список предствалений параметров для отображения на экране
+
+        Returns:
+            list: Список представлений параметров
+        '''
+        # Создание списка представлений параметров
         parameters_view_list = [
             Row(
                 controls=[
@@ -109,41 +130,54 @@ class FunctionCard(UserControl):
                 ]
             )
         ]
-        for param in self.parameters.values():
+
+        # Получение текущих параметров
+        current_parameters = self.function.get_parameters_dict()
+
+        # Цикл по всем параметрам
+        for param_name, param in self.function.parameters_info.items():
             param_editor = None
             match param['type']:
                 case "dropdown":
                     param_editor = [
                         Dropdown(
                             dense=True,
-                            label = param['title'],
-                            options=[dropdown.Option(key=option, text=option) for option in param['options']],
-                            value=param['options'][0],
+                            label=param['title'],
+                            options=[
+                                dropdown.Option(key=option['key'], text=option['text']) for option in param['options']
+                            ],
+                            value=current_parameters[param_name],
+                            on_change=None#self._change_dropdown_title
                         )
                     ]
-                case "slider":
+                case "slider":                    
                     ref_slider_text = Ref[Text]()
+                    slider_divisions = int((param['max'] - param['min']) / param['step'])
                     param_editor = [
                         Column(
                             controls=[
                                 Text(
                                     ref=ref_slider_text,
-                                    value=f'{param["title"]}: {param["value"]}',
+                                    value=f'{param["title"]}: {current_parameters[param_name]}',
                                 ),
                                 Slider(
                                     min=param['min'],
                                     max=param['max'],
-                                    value=param['value'],
-                                    divisions=int((param['max'] - param['min']) / param['step']),
+                                    value=current_parameters[param_name],
+                                    divisions=slider_divisions,
                                     label='{value}',
-                                    data={"slider_text": ref_slider_text, 'slider_name': param['title']},
-                                    on_change=self._slider_changed,
+                                    data={
+                                        "slider_text": ref_slider_text,
+                                        'param_title': param["title"],
+                                        'param_name': param_name
+                                    },
+                                    on_change=self._change_slider_title,
                                 )
                             ]
                         )
                     ]
                 case 'file_picker':
-                    param_editor=[
+                    param_editor = [
                         Column(
                             controls=[
                                 Text(
@@ -155,20 +189,59 @@ class FunctionCard(UserControl):
                             ]
                         )
                     ]
-                    
-                    
+
+            # Добавление представления параметра в список
             parameters_view_list.append(
                 Row(
                     controls=param_editor
                 )
             )
         return parameters_view_list
-    
-    def _slider_changed(self, e):
-        e.control.data['slider_text'].current.value = f"{e.control.data['slider_name']}: {round(e.control.value, 3)}"
+
+
+    def get_parameters(self) -> Container:
+        '''
+        Возвращает список параметров для отображения на экране
+
+        Returns:
+            Container: Контейнер, содержащий представление списка параметров
+        '''
+        return self.parameters_view
+
+
+    def _change_slider_title(self, e) -> None:
+        '''
+        Обнавляет значение параметра в заголовке слайдера
+
+        Args:
+            e (Event): Событие изменения слайдера.
+        '''
+        slider_title = e.control.data['slider_text'].current
+        slider_param_title = e.control.data['param_title']
+        slider_param_name = e.control.data['param_name']
+        slider_param_value = round(e.control.value, 3)
+
+        slider_title.value = f"{slider_param_title}: {slider_param_value}"
+        self.function.set_parameter_value(slider_param_name, slider_param_value) # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
+        
+        self.update_card_parameters_text()
         self.graphic_area.update()
 
-    # def my_on_click(self, e):
-    #     self.function_card.bgcolor = colors.BLACK26
-    #     self.update()
+
+    def _get_card_parameters_text(self) -> str:
+        '''
+        Возвращает текст с параметрами для карточки функции
+        '''
+        # \u00A0 - Unicode символ неразмеренного пробела
+        return '### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '.\n' \
+             + '### Результат:\n' + str(self.function.result)
+    
+
+    def update_card_parameters_text(self) -> None:
+        '''
+        Обновляет текст параметров в карточки функции
+        '''
+        self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
+        self.update()
+
 

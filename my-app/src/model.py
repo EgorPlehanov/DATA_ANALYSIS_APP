@@ -42,7 +42,7 @@ class Model:
 
         return t, data
     
-    def data_download():
+    def data_download(input_data):
         pass
 
     
@@ -53,9 +53,25 @@ Model.functions_info = {
                 "type": {
                     "title": "Тип тренда",
                     "type": "dropdown",
-                    "options": ["linear_rising", "linear_falling", "nonlinear_rising", "nonlinear_falling"],
-                    "default": "linear_rising",
-                    "value": "linear_rising",
+                    "options": [
+                        {
+                            "key": "linear_rising",
+                            "text": "linear_rising",
+                        },
+                        {
+                            "key": "linear_falling",
+                            "text": "linear_falling",
+                        },
+                        {
+                            "key": "nonlinear_rising",
+                            "text": "nonlinear_rising",
+                        },
+                        {
+                            "key": "nonlinear_falling",
+                            "text": "nonlinear_falling",
+                        }
+                    ],
+                    "default_value": "linear_rising",
                 },
                 "a": {
                     "title": "Параметр a",
@@ -63,8 +79,7 @@ Model.functions_info = {
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
-                    "default": 1.0,
-                    "value": 1.0,
+                    "default_value": 1.0,
                 },
                 "b": {
                     "title": "Параметр b",
@@ -72,8 +87,7 @@ Model.functions_info = {
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
-                    "default": 1.0,
-                    "value": 1.0,
+                    "default_value": 1.0,
                 },
                 "step": {
                     "title": "Интервал Δ",
@@ -81,8 +95,7 @@ Model.functions_info = {
                     "min": 1,
                     "max": 10,
                     "step": 1,
-                    "default": 1,
-                    "value": 1,
+                    "default_value": 1,
                 },
                 "N": {
                     "title": "Длина данных N",
@@ -90,8 +103,7 @@ Model.functions_info = {
                     "min": 100,
                     "max": 10000,
                     "step": 100,
-                    "default": 100,
-                    "value": 100,
+                    "default_value": 100,
                 },
             }
         },
@@ -101,7 +113,7 @@ Model.functions_info = {
                 'input_data': {
                     "title": "Выбор файла данных",
                     "type": "file_picker",
-                    "value": None,
+                    "default_value": None,
                 }
             }
         }

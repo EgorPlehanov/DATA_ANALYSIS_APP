@@ -27,20 +27,26 @@ class GraphicArea(Row):
         self.app = app
         self.page = page
         self.spacing = 0
+
+        # Ссылка на выбранную функцию
         self.ref_function_card = Ref[Container]()
 
+        # Список функций блоков (данные/обработка/анализ)
         self.list_functions_data = []
         self.list_functions_edit = []
         self.list_functions_analis = []
+
+        # Список параметров функций блоков (данные/обработка/анализ)
         self.list_function_parameters=[]
 
+        # Ссылки на выпадающие списки блоков (данные/обработка/анализ)
         self.ref_dropdown_data = Ref[Dropdown]()
         self.ref_dropdown_edit = Ref[Dropdown]()
         self.ref_dropdown_analis = Ref[Dropdown]()
 
-        self.function_menu_data_block = Container(
+        self.function_menu_data_block = Container()
 
-        )
+        # Меню работы с функциями
         self.function_menu = Container(
             bgcolor=colors.BLACK26,
             # border=border.all(color=colors.ORANGE),
@@ -68,7 +74,7 @@ class GraphicArea(Row):
                                                 dropdown.Option(key='data_download', text="Загрузить свои данные"),
                                             ]
                                         ),
-                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_data, self.list_functions_data)),
+                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_data, self.list_functions_data, 'data')),
                                     ]
                                 ),
                                 Column(
@@ -94,7 +100,7 @@ class GraphicArea(Row):
                                                 dropdown.Option("Шум"),
                                             ]
                                         ),
-                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_edit, self.list_functions_edit)),
+                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_edit, self.list_functions_edit, 'edit')),
                                     ]
                                 ),
                                 Column(
@@ -121,7 +127,7 @@ class GraphicArea(Row):
                                                 dropdown.Option("Аналитическая функция 3"),
                                             ]
                                         ),
-                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_analis, self.list_functions_analis)),
+                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_analis, self.list_functions_analis, 'analitic')),
                                     ]
                                 ),
                                 Column(
@@ -133,6 +139,8 @@ class GraphicArea(Row):
                 ]
             )
         )
+
+        # Меню работы с параметрами
         self.parameters_menu = Container(
             padding=5,
             alignment=alignment.top_center,
@@ -155,10 +163,9 @@ class GraphicArea(Row):
                 ]
             )
         )
-        self.controls = [
-            self.function_menu,
-            self.parameters_menu,
-            Container(
+
+        # Область вывода результатов
+        self.results_view = Container(
                 expand=True,
                 border=border.all(colors.BLACK),
                 content=Tabs(
@@ -202,10 +209,16 @@ class GraphicArea(Row):
                     ]
                 ),
             )
+
+        # Содержимое виджета
+        self.controls = [
+            self.function_menu,
+            self.parameters_menu,
+            self.results_view,
         ]
 
 
-    def add_function_to_list(self, ref: Ref[Dropdown], list_functions: List[FunctionCard]) -> None:
+    def add_function_to_list(self, ref: Ref[Dropdown], list_functions: List[FunctionCard], function_type: str) -> None:
         """
         Добавляет функцию в список.
 
@@ -214,21 +227,24 @@ class GraphicArea(Row):
             list_functions (List[FunctionCard]): Список функций блока (данные/обработка/анализ).
         """
         function_name = ref.current.value
-        if function_name:
-            function_card = FunctionCard(
-                self,
-                self.app,
-                self.page,
-                function_name,
-                self.change_selected_function,
-                self.delete_function
-            )
+        if not function_name:
+            return
 
-            # Добавляем в список для блока (данные/обработка/анализ)
-            list_functions.append(function_card)
-            # Добавляем параметры функции в списов
-            self.list_function_parameters.append(function_card.get_parameters())
-            self.update()
+        function_card = FunctionCard(
+            graphic_area=self,
+            app=self.app,
+            page=self.page,
+            function_name=function_name,
+            function_type=function_type,
+            on_change_selected=self.change_selected_function,
+            on_click_delete=self.delete_function,
+        )
+
+        # Добавляем в список для блока (данные/обработка/анализ)
+        list_functions.append(function_card)
+        # Добавляем параметры функции в списов
+        self.list_function_parameters.append(function_card.get_parameters())
+        self.update()
 
 
     def change_selected_function(self, e) -> None:
@@ -279,11 +295,12 @@ class GraphicArea(Row):
                 break 
         
         # Удаляем из списка функций
-        if function_to_remove in self.list_functions_data:
-            self.list_functions_data.remove(function_to_remove)
-        elif function_to_remove in self.list_functions_edit:
-            self.list_functions_edit.remove(function_to_remove)
-        elif function_to_remove in self.list_functions_analis:
-            self.list_functions_analis.remove(function_to_remove)
+        match function_to_remove.function_type:
+            case 'data':
+                self.list_functions_data.remove(function_to_remove)
+            case 'edit':
+                self.list_functions_edit.remove(function_to_remove)
+            case 'analitic':
+                self.list_functions_analis.remove(function_to_remove)
         
         self.update()

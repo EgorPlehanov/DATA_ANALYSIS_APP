@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+
 
 
 class Model:
@@ -40,7 +42,9 @@ class Model:
         elif type == "nonlinear_falling":
             data = Model.trend_function_nonlinear_falling(t, a, b)
 
-        return t, data
+        # return t, data
+        df = pd.DataFrame({'t': t, 'data': data})
+        return df
     
     def data_download(input_data):
         pass
@@ -93,7 +97,7 @@ Model.functions_info = {
                     "title": "Интервал Δ",
                     "type": "slider",
                     "min": 1,
-                    "max": 10,
+                    "max": 15,
                     "step": 1,
                     "default_value": 1,
                 },

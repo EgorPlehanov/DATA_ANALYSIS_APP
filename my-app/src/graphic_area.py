@@ -14,11 +14,13 @@ from flet import (
     Tab,
     Ref,
     Page,
-    alignment
+    alignment,
 )
 from function_card import FunctionCard
 import flet as ft
 
+import plotly.express as px
+from flet.plotly_chart import PlotlyChart
 
 
 class GraphicArea(Row):
@@ -44,7 +46,93 @@ class GraphicArea(Row):
         self.ref_dropdown_edit = Ref[Dropdown]()
         self.ref_dropdown_analis = Ref[Dropdown]()
 
-        self.function_menu_data_block = Container()
+        
+
+        # Блок данных из меню работы с функциями
+        self.function_menu_data = Container(
+            # border=border.all(color=colors.GREEN),
+            bgcolor=colors.BLUE_GREY_900,
+            padding=5,
+            content=Column(
+                controls=[
+                    Text("Данные"),
+                    Row(
+                        controls=[
+                            Dropdown(
+                                ref=self.ref_dropdown_data,
+                                dense=True,
+                                value="trend",
+                                options=[
+                                    dropdown.Option(key='trend', text="Trends"),
+                                    dropdown.Option(key='data_download', text="Загрузить свои данные"),
+                                ]
+                            ),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_data, self.list_functions_data, 'data')),
+                        ]
+                    ),
+                    Column(
+                        controls=self.list_functions_data
+                    )
+                ]
+            )
+        )
+
+        # Блок обработки из меню работы с функциями
+        self.function_menu_edit = Container(
+            bgcolor=colors.BLUE_GREY_900,
+            padding=5,
+            # border=border.all(colors.BLACK),
+            content=Column(
+                controls=[
+                    Text("Обработка"),
+                    Row(
+                        controls=[
+                            Dropdown(
+                                ref=self.ref_dropdown_edit,
+                                dense=True,
+                                options=[
+                                    dropdown.Option("Смешение"),
+                                    dropdown.Option("Шум"),
+                                ]
+                            ),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_edit, self.list_functions_edit, 'edit')),
+                        ]
+                    ),
+                    Column(
+                        controls=self.list_functions_edit
+                    )
+                ]
+            )
+        )
+
+        # Блок анализа из меню работы с функциями
+        self.function_menu_analis = Container(
+            bgcolor=colors.BLUE_GREY_900,
+            padding=5,
+            # border=border.all(colors.BLACK),
+            content=Column(
+                controls=[
+                    Text("Анализ"),
+                    Row(
+                        controls=[
+                            Dropdown(
+                                ref=self.ref_dropdown_analis,
+                                dense=True,
+                                options=[
+                                    dropdown.Option("Аналитическая функция 1"),
+                                    dropdown.Option("Аналитическая функция 2"),
+                                    dropdown.Option("Аналитическая функция 3"),
+                                ]
+                            ),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_analis, self.list_functions_analis, 'analitic')),
+                        ]
+                    ),
+                    Column(
+                        controls=self.list_functions_analis
+                    )
+                ]
+            )
+        )
 
         # Меню работы с функциями
         self.function_menu = Container(
@@ -56,86 +144,9 @@ class GraphicArea(Row):
                 tight=True,
                 scroll=ScrollMode.AUTO,
                 controls=[
-                    Container(
-                        # border=border.all(color=colors.GREEN),
-                        bgcolor=colors.BLUE_GREY_900,
-                        padding=5,
-                        content=Column(
-                            controls=[
-                                Text("Данные"),
-                                Row(
-                                    controls=[
-                                        Dropdown(
-                                            ref=self.ref_dropdown_data,
-                                            dense=True,
-                                            value="trend",
-                                            options=[
-                                                dropdown.Option(key='trend', text="Trends"),
-                                                dropdown.Option(key='data_download', text="Загрузить свои данные"),
-                                            ]
-                                        ),
-                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_data, self.list_functions_data, 'data')),
-                                    ]
-                                ),
-                                Column(
-                                    controls=self.list_functions_data
-                                )
-                            ]
-                        )
-                    ),
-                    Container(
-                        bgcolor=colors.BLUE_GREY_900,
-                        padding=5,
-                        # border=border.all(colors.BLACK),
-                        content=Column(
-                            controls=[
-                                Text("Обработка"),
-                                Row(
-                                    controls=[
-                                        Dropdown(
-                                            ref=self.ref_dropdown_edit,
-                                            dense=True,
-                                            options=[
-                                                dropdown.Option("Смешение"),
-                                                dropdown.Option("Шум"),
-                                            ]
-                                        ),
-                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_edit, self.list_functions_edit, 'edit')),
-                                    ]
-                                ),
-                                Column(
-                                    controls=self.list_functions_edit
-                                )
-                            ]
-                        )
-                    ),
-                    Container(
-                        bgcolor=colors.BLUE_GREY_900,
-                        padding=5,
-                        # border=border.all(colors.BLACK),
-                        content=Column(
-                            controls=[
-                                Text("Анализ"),
-                                Row(
-                                    controls=[
-                                        Dropdown(
-                                            ref=self.ref_dropdown_analis,
-                                            dense=True,
-                                            options=[
-                                                dropdown.Option("Аналитическая функция 1"),
-                                                dropdown.Option("Аналитическая функция 2"),
-                                                dropdown.Option("Аналитическая функция 3"),
-                                            ]
-                                        ),
-                                        IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_analis, self.list_functions_analis, 'analitic')),
-                                    ]
-                                ),
-                                Column(
-                                    controls=self.list_functions_analis
-                                )
-                            ]
-                        )
-                    ),
+                    self.function_menu_data,
+                    self.function_menu_edit,
+                    self.function_menu_analis,
                 ]
             )
         )
@@ -149,66 +160,96 @@ class GraphicArea(Row):
             content=Column(
                 tight=True,
                 scroll=ScrollMode.AUTO,
-                controls=[
-                    Row(
-                        controls=[
-                            # Text('Параметры'),
-                            # IconButton(icon="KEYBOARD_ARROW_LEFT"),
-                            # IconButton(icon="KEYBOARD_ARROW_RIGHT"),
-                        ]
-                    ),
-                    Column(
-                        controls=self.list_function_parameters
-                    )
-                ]
+                controls=self.list_function_parameters
+            )
+        )
+
+        # Ссылки на блоки в разделе результатов (данные/обработка/анализ)
+        self.ref_results_view_data = Ref[Column]()
+        self.ref_results_view_edit = Ref[Column]()
+        self.ref_results_view_analis = Ref[Column]()
+
+        # Вкладка данных из области результатов
+        self.results_view_tab_data =  Tab(
+            text="Данные",
+            content=Container(
+                border=border.all(color=colors.GREEN),
+                expand=False,
+                padding=5,
+                content=Column(
+                    tight=True,
+                    scroll=ScrollMode.AUTO,
+                    ref = self.ref_results_view_data,
+                    # controls=[
+                    #     Row(
+                    #         controls=[
+                    #             Container(
+                    #                 content=PlotlyChart(
+                    #                     figure=px.line(
+                    #                         data_frame=px.data.gapminder().query("continent=='Oceania'"),
+                    #                         x="year",
+                    #                         y="lifeExp",
+                    #                         color="country",
+                    #                     ),
+                    #                     expand=True
+                    #                 ),
+                    #             ),
+                    #             Container(
+                    #                 content=get_graph(),
+                    #             ),
+                    #         ],
+                    #     ),
+                    # ]
+                ),
+            ),
+        )
+
+        # Вкладка обработки из области результатов
+        self.results_view_tab_edit = Tab(
+            text="Обработка",
+            content=Container(
+                expand=True,
+                border=border.all(color=colors.YELLOW),
+                content=Column(
+                    tight=True,
+                    scroll=ScrollMode.AUTO,
+                    ref = self.ref_results_view_edit,
+                    controls=[
+                        Text('График'),
+                    ]
+                )
+            )
+        )
+
+        # Вкладка анализа из области результатов
+        self.results_view_tab_analis = Tab(
+            text="Анализ",
+            content=Container(
+                expand=True,
+                border=border.all(color=colors.RED),
+                content=Column(
+                    tight=True,
+                    scroll=ScrollMode.AUTO,
+                    ref = self.ref_results_view_analis,
+                    controls=[
+                        
+                    ]
+                )
             )
         )
 
         # Область вывода результатов
         self.results_view = Container(
-                expand=True,
-                border=border.all(colors.BLACK),
-                content=Tabs(
-                    tabs=[
-                        Tab(
-                            text="Данные",
-                            content=Container(
-                                border=border.all(color=colors.GREEN),
-                                expand=False,
-                                bgcolor=colors.BLUE_GREY_900,
-                                padding=5,
-                                content=Row(
-                                    controls=[
-                                        Text('Тренды'),
-                                    ]
-                                ),
-                            ),
-                        ),
-                        Tab(
-                            text="Обработка",
-                            content=Container(
-                                expand=True,
-                                border=border.all(colors.BLACK),
-                                content=Row(
-                                    controls=[
-                                        Text('График')
-                                    ]
-                                )
-                            )
-                        ),
-                        Tab(
-                            text="Анализ",
-                            content=Container(
-                                expand=True,
-                                border=border.all(colors.BLACK),
-                                content=Row(
-                                    controls=[]#self.list_function_parameters
-                                )
-                            )
-                        )
-                    ]
-                ),
-            )
+            expand=True,
+            border=border.all(colors.BLACK),
+            content=Tabs(
+                tabs=[
+                    self.results_view_tab_data,
+                    self.results_view_tab_edit,
+                    self.results_view_tab_analis,
+                ]
+            ),
+        )
 
         # Содержимое виджета
         self.controls = [
@@ -304,3 +345,4 @@ class GraphicArea(Row):
                 self.list_functions_analis.remove(function_to_remove)
         
         self.update()
+

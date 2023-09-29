@@ -1,4 +1,5 @@
 from typing import Any
+import pandas as pd
 import flet as ft
 from flet import (
     UserControl,
@@ -46,7 +47,10 @@ class FunctionCard(UserControl):
                 Row(
                     alignment=MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        Text(value='Функция: ' + self.function.name + ' (' + ', '.join(self.function.parameters_names) + ')'),
+                        Markdown(
+                            extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                            value='# Функция:\n**' + self.function.name + '** (' + ', '.join(self.function.parameters_names) + ')',
+                        ),
                         IconButton(
                             icon=icons.DELETE,
                             data=self,
@@ -56,6 +60,7 @@ class FunctionCard(UserControl):
                 ),
                 Markdown(
                     ref=self.ref_card_parameters_text,
+                    extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
                     value=self._get_card_parameters_text()
                 )
             ]
@@ -79,6 +84,10 @@ class FunctionCard(UserControl):
             content=Column(
                 controls=self._get_parameters_view_list()
             )
+        )
+
+        self.result_view = Container(
+            
         )
         
 
@@ -140,7 +149,7 @@ class FunctionCard(UserControl):
                             data={
                                 'param_name': param_name
                             },
-                            on_change=self.on_dropdown_change
+                            on_change=self._on_dropdown_change
                         )
                     ]
                 case "slider":                    
@@ -221,7 +230,7 @@ class FunctionCard(UserControl):
         self.graphic_area.update()
 
 
-    def on_dropdown_change(self, e) -> None:
+    def _on_dropdown_change(self, e) -> None:
         '''
         Обновляет значение параметра в экземпляре класса Function и карточке функции
         '''
@@ -234,13 +243,28 @@ class FunctionCard(UserControl):
         self.graphic_area.update()
 
 
-    def _get_card_parameters_text(self) -> str:
+    def _get_card_parameters_text(self, max_rows=10) -> str:
         '''
         Возвращает текст с параметрами для карточки функции
         '''
+        df = self.function.result
+        if len(df) <= max_rows:
+            markdown_table = df.to_markdown()
+        else:
+            df_head = df.head(max_rows // 2)
+            df_tail = df.tail(max_rows // 2)
+
+            tail_rows = []
+            for idx, row in df_tail.iterrows():
+                row_text = f'| {idx} | ' + " | ".join(map(str, row)) + ' |'
+                tail_rows.append(row_text)
+
+            table_separator = '\n|' + '|'.join(['...'] * (df.shape[1] + 1)) + '|\n' if df.shape[0] > 10 else ""
+            markdown_table = df_head.to_markdown() + table_separator + '\n'.join(tail_rows)
+            
         # \u00A0 - Unicode символ неразмеренного пробела
-        return '### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '.\n' \
-             + '### Результат:\n' + str(self.function.result)
+        parameters_text = '### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '.\n'
+        return parameters_text + '### Результат:\n\n' + markdown_table
     
 
     def update_card_parameters_text(self) -> None:

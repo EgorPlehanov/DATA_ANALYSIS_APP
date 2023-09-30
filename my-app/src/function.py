@@ -52,5 +52,4 @@ class Function:
         parameters = self.get_parameters_dict()
 
         self.result = self.function(**parameters)
-        # Вызоваем функцию function с полученными параметрами и возвращаем результат
         return self.result

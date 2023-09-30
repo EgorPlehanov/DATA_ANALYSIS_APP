@@ -15,12 +15,11 @@ from flet import (
     Ref,
     Page,
     alignment,
+    Markdown,
 )
 from function_card import FunctionCard
 import flet as ft
-
-import plotly.express as px
-from flet.plotly_chart import PlotlyChart
+from model import Model
 
 
 class GraphicArea(Row):
@@ -33,20 +32,15 @@ class GraphicArea(Row):
         # Ссылка на выбранную функцию
         self.ref_function_card = Ref[Container]()
 
-        # Список функций блоков (данные/обработка/анализ)
+        # Списоки функций блоков (данные/обработка/анализ)
         self.list_functions_data = []
         self.list_functions_edit = []
         self.list_functions_analis = []
-
-        # Список параметров функций блоков (данные/обработка/анализ)
-        self.list_function_parameters=[]
 
         # Ссылки на выпадающие списки блоков (данные/обработка/анализ)
         self.ref_dropdown_data = Ref[Dropdown]()
         self.ref_dropdown_edit = Ref[Dropdown]()
         self.ref_dropdown_analis = Ref[Dropdown]()
-
-        
 
         # Блок данных из меню работы с функциями
         self.function_menu_data = Container(
@@ -55,19 +49,25 @@ class GraphicArea(Row):
             padding=5,
             content=Column(
                 controls=[
-                    Text("Данные"),
+                    Markdown(value="### Данные"),
                     Row(
                         controls=[
                             Dropdown(
                                 ref=self.ref_dropdown_data,
                                 dense=True,
-                                value="trend",
+                                value=Model.get_functions_by_type('data')[0]['key'],
                                 options=[
-                                    dropdown.Option(key='trend', text="Trends"),
-                                    dropdown.Option(key='data_download', text="Загрузить свои данные"),
+                                    dropdown.Option(key=option['key'], text=option['name'])
+                                    for option in Model.get_functions_by_type('data')
                                 ]
                             ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_data, self.list_functions_data, 'data')),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
+                                    self.ref_dropdown_data,
+                                    self.list_functions_data,
+                                    self.list_results_data,
+                                    'data'
+                                )
+                            ),
                         ]
                     ),
                     Column(
@@ -84,18 +84,25 @@ class GraphicArea(Row):
             # border=border.all(colors.BLACK),
             content=Column(
                 controls=[
-                    Text("Обработка"),
+                    Markdown(value="### Обработка"),
                     Row(
                         controls=[
                             Dropdown(
                                 ref=self.ref_dropdown_edit,
                                 dense=True,
+                                # value=Model.get_functions_by_type('edit')[0]['key'],
                                 options=[
-                                    dropdown.Option("Смешение"),
-                                    dropdown.Option("Шум"),
+                                    dropdown.Option(key=option['key'], text=option['name'])
+                                    for option in Model.get_functions_by_type('edit')
                                 ]
                             ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_edit, self.list_functions_edit, 'edit')),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
+                                    self.ref_dropdown_edit,
+                                    self.list_functions_edit,
+                                    self.list_results_edit,
+                                    'edit'
+                                )
+                            ),
                         ]
                     ),
                     Column(
@@ -112,19 +119,25 @@ class GraphicArea(Row):
             # border=border.all(colors.BLACK),
             content=Column(
                 controls=[
-                    Text("Анализ"),
+                    Markdown(value="### Анализ"),
                     Row(
                         controls=[
                             Dropdown(
                                 ref=self.ref_dropdown_analis,
                                 dense=True,
+                                # value=Model.get_functions_by_type('analis')[0]['key'],
                                 options=[
-                                    dropdown.Option("Аналитическая функция 1"),
-                                    dropdown.Option("Аналитическая функция 2"),
-                                    dropdown.Option("Аналитическая функция 3"),
+                                    dropdown.Option(key=option['key'], text=option['name'])
+                                    for option in Model.get_functions_by_type('analis')
                                 ]
                             ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(self.ref_dropdown_analis, self.list_functions_analis, 'analitic')),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
+                                    self.ref_dropdown_analis,
+                                    self.list_functions_analis,
+                                    self.list_results_analis,
+                                    'analitic'
+                                )
+                            ),
                         ]
                     ),
                     Column(
@@ -151,6 +164,9 @@ class GraphicArea(Row):
             )
         )
 
+        # Список параметров функций блоков (данные/обработка/анализ)
+        self.list_function_parameters=[]
+
         # Меню работы с параметрами
         self.parameters_menu = Container(
             padding=5,
@@ -164,6 +180,11 @@ class GraphicArea(Row):
             )
         )
 
+        # Списки результатов для блоков области результатов (данные/обработка/анализ)
+        self.list_results_data = []
+        self.list_results_edit = []
+        self.list_results_analis = []
+
         # Ссылки на блоки в разделе результатов (данные/обработка/анализ)
         self.ref_results_view_data = Ref[Column]()
         self.ref_results_view_edit = Ref[Column]()
@@ -175,31 +196,12 @@ class GraphicArea(Row):
             content=Container(
                 border=border.all(color=colors.GREEN),
                 expand=False,
-                padding=5,
+                padding=10,
                 content=Column(
                     tight=True,
                     scroll=ScrollMode.AUTO,
                     ref = self.ref_results_view_data,
-                    # controls=[
-                    #     Row(
-                    #         controls=[
-                    #             Container(
-                    #                 content=PlotlyChart(
-                    #                     figure=px.line(
-                    #                         data_frame=px.data.gapminder().query("continent=='Oceania'"),
-                    #                         x="year",
-                    #                         y="lifeExp",
-                    #                         color="country",
-                    #                     ),
-                    #                     expand=True
-                    #                 ),
-                    #             ),
-                    #             Container(
-                    #                 content=get_graph(),
-                    #             ),
-                    #         ],
-                    #     ),
-                    # ]
+                    controls=self.list_results_data
                 ),
             ),
         )
@@ -210,13 +212,12 @@ class GraphicArea(Row):
             content=Container(
                 expand=True,
                 border=border.all(color=colors.YELLOW),
+                padding=10,
                 content=Column(
                     tight=True,
                     scroll=ScrollMode.AUTO,
                     ref = self.ref_results_view_edit,
-                    controls=[
-                        Text('График'),
-                    ]
+                    controls=self.list_results_edit
                 )
             )
         )
@@ -227,13 +228,12 @@ class GraphicArea(Row):
             content=Container(
                 expand=True,
                 border=border.all(color=colors.RED),
+                padding=10,
                 content=Column(
                     tight=True,
                     scroll=ScrollMode.AUTO,
                     ref = self.ref_results_view_analis,
-                    controls=[
-                        
-                    ]
+                    controls=self.list_results_analis
                 )
             )
         )
@@ -259,7 +259,13 @@ class GraphicArea(Row):
         ]
 
 
-    def add_function_to_list(self, ref: Ref[Dropdown], list_functions: List[FunctionCard], function_type: str) -> None:
+    def add_function_to_list(
+            self,
+            ref: Ref[Dropdown],
+            list_functions: List[FunctionCard],
+            list_results: List[Container],
+            function_type: str
+        ) -> None:
         """
         Добавляет функцию в список.
 
@@ -283,8 +289,9 @@ class GraphicArea(Row):
 
         # Добавляем в список для блока (данные/обработка/анализ)
         list_functions.append(function_card)
-        # Добавляем параметры функции в списов
+        # Добавляем параметры функции в список
         self.list_function_parameters.append(function_card.get_parameters())
+        list_results.append(function_card.get_result_view())
         self.update()
 
 
@@ -323,6 +330,7 @@ class GraphicArea(Row):
             e (Event): Параметры события
         '''
         function_to_remove = e.control.data
+        reslut_view_to_remove = function_to_remove.ref_result_view.current
         selected_function = self.ref_function_card.current
 
         # Удаляем из выбранного
@@ -339,10 +347,13 @@ class GraphicArea(Row):
         match function_to_remove.function_type:
             case 'data':
                 self.list_functions_data.remove(function_to_remove)
+                self.list_results_data.remove(reslut_view_to_remove)
             case 'edit':
                 self.list_functions_edit.remove(function_to_remove)
+                self.list_results_edit.remove(reslut_view_to_remove)
             case 'analitic':
                 self.list_functions_analis.remove(function_to_remove)
+                self.list_results_edit.remove(reslut_view_to_remove)
         
         self.update()
 

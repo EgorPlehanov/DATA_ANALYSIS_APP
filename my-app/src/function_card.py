@@ -1,5 +1,6 @@
 from typing import Any
 import pandas as pd
+import numpy as np
 import flet as ft
 from flet import (
     UserControl,
@@ -17,6 +18,14 @@ from flet import (
     dropdown,
     Ref,
     Slider,
+    MarkdownExtensionSet,
+    LineChart,
+    ChartAxis,
+    LineChartDataPoint,
+    LineChartData,
+    ChartGridLines,
+    ChartPointLine,
+    Checkbox,
 )
 from function import Function
 
@@ -49,7 +58,7 @@ class FunctionCard(UserControl):
                     controls=[
                         Markdown(
                             extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                            value='# Функция:\n**' + self.function.name + '** (' + ', '.join(self.function.parameters_names) + ')',
+                            value='#### Функция:\n**' + self.function.name + '** (' + ', '.join(self.function.parameters_names) + ')',
                         ),
                         IconButton(
                             icon=icons.DELETE,
@@ -60,7 +69,7 @@ class FunctionCard(UserControl):
                 ),
                 Markdown(
                     ref=self.ref_card_parameters_text,
-                    extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                    extension_set=MarkdownExtensionSet.GITHUB_WEB,
                     value=self._get_card_parameters_text()
                 )
             ]
@@ -86,8 +95,13 @@ class FunctionCard(UserControl):
             )
         )
 
+        # Представление результатов функции
+        self.ref_result_view = Ref[Container]()
+        self.ref_result_view_LineChartData = Ref[LineChartData]()
         self.result_view = Container(
-            
+            ref=self.ref_result_view,
+            data=self,
+            content=self._get_result_view_list()
         )
         
 
@@ -125,7 +139,7 @@ class FunctionCard(UserControl):
         parameters_view_list = [
             Row(
                 controls=[
-                    Text(value="Параметры",)
+                    Markdown(value="### Параметры")
                 ]
             )
         ]
@@ -143,7 +157,8 @@ class FunctionCard(UserControl):
                             dense=True,
                             label=param['title'],
                             options=[
-                                dropdown.Option(key=option['key'], text=option['text']) for option in param['options']
+                                dropdown.Option(key=option['key'], text=option['text'])
+                                for option in param['options']
                             ],
                             value=current_parameters[param_name],
                             data={
@@ -175,6 +190,26 @@ class FunctionCard(UserControl):
                                     },
                                     on_change=self._change_slider_title,
                                 )
+                            ]
+                        )
+                    ]
+                case 'checkbox':
+                    ref_checkbox = [Ref[Checkbox]() for _ in range(len(param['checkboxes']))]
+                    param_editor = [
+                        Column(
+                            controls=[
+                                Checkbox(
+                                    label=checkbox['label'],
+                                    value=checkbox['default_value'],
+                                    ref=ref_checkbox[idx],
+                                    data={
+                                        'key': checkbox['key'],
+                                        'ref_checkboxes': ref_checkbox,
+                                        'param_name': param_name,
+                                    },
+                                    on_change=self._on_checkbox_change
+                                )
+                                for idx, checkbox in enumerate(param['checkboxes'])
                             ]
                         )
                     ]
@@ -227,6 +262,7 @@ class FunctionCard(UserControl):
         self.function.set_parameter_value(slider_param_name, slider_param_value) # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
         
         self.update_card_parameters_text()
+        self.update_card_result_view()
         self.graphic_area.update()
 
 
@@ -240,6 +276,28 @@ class FunctionCard(UserControl):
         self.function.set_parameter_value(dropdown_param_name, dropdown_param_value)
 
         self.update_card_parameters_text()
+        self.update_card_result_view()
+        self.graphic_area.update()
+
+    
+    def _on_checkbox_change(self, e) -> None:
+
+        checkbox_key = e.control.data['key']
+        checkbox_value = e.control.value
+        checkbox_param_name = e.control.data['param_name']
+
+        checkbox_param_value = self.function.get_parameter_value(checkbox_param_name)
+        if checkbox_value:
+            checkbox_param_value.append(checkbox_key)
+        else:
+            checkbox_param_value.remove(checkbox_key)
+        
+        print(checkbox_param_value)
+
+        self.function.set_parameter_value(checkbox_param_name, checkbox_param_value)
+
+        self.update_card_parameters_text()
+        self.update_card_result_view()
         self.graphic_area.update()
 
 
@@ -247,24 +305,27 @@ class FunctionCard(UserControl):
         '''
         Возвращает текст с параметрами для карточки функции
         '''
-        df = self.function.result
-        if len(df) <= max_rows:
-            markdown_table = df.to_markdown()
-        else:
-            df_head = df.head(max_rows // 2)
-            df_tail = df.tail(max_rows // 2)
+        df_list = self.function.result
+        markdown_table_list = []
+        for df in df_list:
+            if len(df) <= max_rows:
+                markdown_table = df.to_markdown()
+            else:
+                df_head = df.head(max_rows // 2)
+                df_tail = df.tail(max_rows // 2)
 
-            tail_rows = []
-            for idx, row in df_tail.iterrows():
-                row_text = f'| {idx} | ' + " | ".join(map(str, row)) + ' |'
-                tail_rows.append(row_text)
+                tail_rows = []
+                for idx, row in df_tail.iterrows():
+                    row_text = f'| {idx} | ' + " | ".join(map(str, row)) + ' |'
+                    tail_rows.append(row_text)
 
-            table_separator = '\n|' + '|'.join(['...'] * (df.shape[1] + 1)) + '|\n' if df.shape[0] > 10 else ""
-            markdown_table = df_head.to_markdown() + table_separator + '\n'.join(tail_rows)
+                table_separator = '\n|' + '|'.join(['...'] * (df.shape[1] + 1)) + '|\n' if df.shape[0] > 10 else ""
+                markdown_table = df_head.to_markdown() + table_separator + '\n'.join(tail_rows)
+            markdown_table_list.append(markdown_table)
             
         # \u00A0 - Unicode символ неразмеренного пробела
-        parameters_text = '### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '.\n'
-        return parameters_text + '### Результат:\n\n' + markdown_table
+        parameters_text = '#### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '\n'
+        return parameters_text + '#### Результат:\n\n' + '\n\n'.join(markdown_table_list)
     
 
     def update_card_parameters_text(self) -> None:
@@ -274,4 +335,123 @@ class FunctionCard(UserControl):
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
         self.update()
 
+
+    def update_card_result_view(self) -> None:
+        '''
+        Обновляет представление результатов в карточке функции
+        '''
+        dataframe = self.function.result
+        
+        data_points_list = []
+        for df in dataframe:
+            data_points_list.append(
+                [
+                    LineChartDataPoint(x, y) for x, y in zip(df.iloc[:, 0], df.iloc[:, 1])
+                ]
+            )
+        # self.ref_result_view_LineChartData.current.data_points = data_points
+        self.ref_result_view.current.content = self._get_result_view_list()
+        self.update()
+
+
+    def _get_result_view_list(self) -> Column:
+        dataframe_list = self.function.result
+
+        # result_view = ft.GridView(
+        #     expand=True,
+        #     runs_count=3 if len(dataframe_list) > 2 else len(dataframe_list),
+        #     max_extent=500,
+        #     child_aspect_ratio=1.0,
+        #     spacing=5,
+        #     run_spacing=5,
+        #     controls=[
+        #         self._get_function_result_graphic(df) for df in dataframe_list
+        #     ]
+        # )
+
+        graphs_cnt = len(dataframe_list)
+        grid = []
+        row = []
+        for idx in range(1, graphs_cnt + 1):
+            row.append(self._get_function_result_graphic(dataframe_list[idx-1]))
+            if (
+                graphs_cnt <= 3 
+                or len(row) == 3
+                or (graphs_cnt % 3 == 1 and graphs_cnt - idx < 3 and len(row) == 2)
+                or idx == graphs_cnt
+            ):
+                grid.append(Row(controls=row))
+                row = []
+        
+        result_view = Column(
+            controls=grid
+        )
+        return result_view
+    
+
+    def get_result_view(self) -> Container:
+        return self.result_view
+    
+
+    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False):
+        data_series = []
+
+        if color is None:
+            color = colors.LIGHT_GREEN
+
+        if column_names is None:
+            column_names = dataframe.columns.tolist()  # Получаем названия столбцов из датафрейма
+
+        data_points = [
+            LineChartDataPoint(x, y)
+            for x, y in zip(dataframe.iloc[:, 0], dataframe.iloc[:, 1])
+        ]
+
+        data_series.append(
+            LineChartData(
+                ref=self.ref_result_view_LineChartData,
+                data_points=data_points,
+                stroke_width=1,
+                color=color,
+                curved=graphic_curved,
+                stroke_cap_round=True,
+                selected_below_line=ChartPointLine(
+                    color=colors.ON_SURFACE,
+                    width=1,
+                    dash_pattern=[10, 5],
+                )
+            )
+        )
+
+        chart = LineChart(
+            data_series=data_series,
+            left_axis=ChartAxis(
+                title=Text(value=column_names[1]),
+                title_size=20,
+                labels_size=50,
+            ),
+            bottom_axis=ChartAxis(
+                title=Text(column_names[0]),
+                title_size=20,
+                labels_size=30
+            ),
+            top_axis=ChartAxis(
+                title=Text(value=self.function_name, size=20),
+                title_size=30,
+                show_labels=False,
+            ),
+            border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+            horizontal_grid_lines=ChartGridLines(
+                width=1,
+                color=colors.with_opacity(0.2, colors.ON_SURFACE), 
+            ),
+            vertical_grid_lines=ChartGridLines(
+                width=1,
+                color=colors.with_opacity(0.2, colors.ON_SURFACE),
+            ),
+            tooltip_bgcolor=colors.with_opacity(0.8, colors.BLACK38),
+            expand=True,
+        )
+
+        return chart
 

@@ -61,6 +61,9 @@ class Model:
     
 
     def multi_trend(type_list, a, b, step, N):
+        if len(type_list) == 0:
+            return []
+        
         df_list = []
         for type in type_list:
             df_list.append(*Model.trend(type, a, b, step, N))
@@ -70,33 +73,41 @@ class Model:
     def combinate_trend(type_list, a, b, step, N):
         num_parts = len(type_list)
         if num_parts == 0:
-            return pd.DataFrame()
+            return []
 
         # Разделить период t на равные части
         t_parts = np.array_split(np.arange(0, N, step), num_parts)
 
         df_list = []
+        previous_end_value = None
         for i, type in enumerate(type_list):
             # Сгенерировать данные для каждой части
             data = []
             if type == "linear_rising":
-                data = Model.trend_function_linear_rising(t_parts[0], a, b)
+                data = Model.trend_function_linear_rising(t_parts[i], a, b)
             elif type == "linear_falling":
-                data = Model.trend_function_linear_falling(t_parts[0], a, b)
+                data = Model.trend_function_linear_falling(t_parts[i], a, b)
             elif type == "nonlinear_rising":
-                data = Model.trend_function_nonlinear_rising(t_parts[0], a, b)
+                data = Model.trend_function_nonlinear_rising(t_parts[i], a, b)
             elif type == "nonlinear_falling":
-                data = Model.trend_function_nonlinear_falling(t_parts[0], a, b)
-            
+                data = Model.trend_function_nonlinear_falling(t_parts[i], a, b)
+
+            if previous_end_value is not None:
+                shift = previous_end_value - data[0]
+                data = [value + shift for value in data]
+
             df_list.append(pd.DataFrame({'x': t_parts[i], 'y': data}))
 
+            # Обновите значение последнего элемента для следующей итерации
+            previous_end_value = data[-1]
+            
         # Объединить результаты
         combined_df = pd.concat(df_list, ignore_index=True)
         combined_df = combined_df[combined_df['y'] <= 1000000000]
         combined_df = combined_df.round({'x': 4, 'y': 4})
         return [{
             'data': combined_df,
-            'type': ', '.join(type_list)
+            'type': ' -> '.join(type_list)
         }]
 
 

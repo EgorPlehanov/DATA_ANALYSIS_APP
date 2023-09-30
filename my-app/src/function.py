@@ -14,7 +14,7 @@ class Function:
         for param_name, param_info in self.parameters_info.items():
             setattr(self, param_name, param_info['default_value'])
 
-        self.result = self.calculate()
+        self.calculate()
 
 
     def get_parameter_value(self, param_name) -> Any:
@@ -54,4 +54,3 @@ class Function:
         if not parameters:
             return None
         self.result = self.function(**parameters)
-        return self.result

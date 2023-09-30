@@ -285,8 +285,7 @@ class FunctionCard(UserControl):
         slider_title.value = f"{slider_param_title}: {slider_param_value}"
         self.function.set_parameter_value(slider_param_name, slider_param_value) # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
         
-        self.update_card_parameters_text()
-        self.update_card_result_view()
+        self.update_function_card()
         self.graphic_area.update()
 
 
@@ -299,8 +298,7 @@ class FunctionCard(UserControl):
         
         self.function.set_parameter_value(dropdown_param_name, dropdown_param_value)
 
-        self.update_card_parameters_text()
-        self.update_card_result_view()
+        self.update_function_card()
         self.graphic_area.update()
 
     
@@ -316,12 +314,9 @@ class FunctionCard(UserControl):
         else:
             checkbox_param_value.remove(checkbox_key)
         
-        print(checkbox_param_value)
-
         self.function.set_parameter_value(checkbox_param_name, checkbox_param_value)
 
-        self.update_card_parameters_text()
-        self.update_card_result_view()
+        self.update_function_card()
         self.graphic_area.update()
 
 
@@ -335,7 +330,6 @@ class FunctionCard(UserControl):
     
     def _get_card_parameters_result(self, max_rows=10):
         df_list = self.function.result
-
         if not df_list:
             return '***Нет данных***'
         
@@ -374,18 +368,9 @@ class FunctionCard(UserControl):
         self.update()
 
 
-    def update_card_parameters_text(self) -> None:
+    def update_function_card(self) -> None:
         '''
         Обновляет текст параметров в карточки функции
-        '''
-        self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
-        self.ref_card_parameters_result.current.value = self._get_card_parameters_result()
-        self.update()
-
-
-    def update_card_result_view(self) -> None:
-        '''
-        Обновляет представление результатов в карточке функции
         '''
         dataframe = self.function.result
         # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
@@ -399,13 +384,21 @@ class FunctionCard(UserControl):
             )
         # self.ref_result_view_LineChartData.current.data_points = data_points
         self.ref_result_view.current.content = self._get_result_view_list()
+        self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
+        self.ref_card_parameters_result.current.value = self._get_card_parameters_result()
         self.update()
+
 
 
     def _get_result_view_list(self) -> Column:
         dataframe_list = self.function.result
         if not dataframe_list:
-            return None
+            return Row(
+                    alignment=MainAxisAlignment.CENTER,
+                    controls=[
+                        Text(value='Нет данных для построения графиков функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
+                    ]
+                )
         # result_view = ft.GridView(
         #     expand=True,
         #     runs_count=3 if len(dataframe_list) > 2 else len(dataframe_list),

@@ -54,7 +54,10 @@ class Model:
         df = pd.DataFrame({'x': t, 'y': data})
         df = df[df['y'] <= 1000000000]
         df = df.round({'x': 4, 'y': 4})
-        return [df]
+        return [{
+            'data': df,
+            'type': type,
+        }]
     
 
     def multi_trend(type_list, a, b, step, N):
@@ -91,7 +94,10 @@ class Model:
         combined_df = pd.concat(df_list, ignore_index=True)
         combined_df = combined_df[combined_df['y'] <= 1000000000]
         combined_df = combined_df.round({'x': 4, 'y': 4})
-        return [combined_df]
+        return [{
+            'data': combined_df,
+            'type': ', '.join(type_list)
+        }]
 
 
     def data_download(input_data):

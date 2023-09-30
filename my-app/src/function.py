@@ -1,3 +1,4 @@
+import pandas as pd
 from typing import Any
 from model import Model
 
@@ -50,6 +51,7 @@ class Function:
         """
         # Содаем словарь параметров со значениями
         parameters = self.get_parameters_dict()
-
+        if not parameters:
+            return None
         self.result = self.function(**parameters)
         return self.result

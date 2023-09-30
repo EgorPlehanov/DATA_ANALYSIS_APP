@@ -1,6 +1,5 @@
+import random
 from typing import Any
-import pandas as pd
-import numpy as np
 import flet as ft
 from flet import (
     UserControl,
@@ -26,6 +25,8 @@ from flet import (
     ChartGridLines,
     ChartPointLine,
     Checkbox,
+    padding,
+    FontWeight,
 )
 from function import Function
 
@@ -50,6 +51,7 @@ class FunctionCard(UserControl):
 
         # Содержимое карточки функции
         self.ref_card_parameters_text = Ref[Markdown]()
+        self.ref_card_parameters_result = Ref[Markdown]()
         self.card_content = Column(
             expand=True,
             controls=[
@@ -71,6 +73,25 @@ class FunctionCard(UserControl):
                     ref=self.ref_card_parameters_text,
                     extension_set=MarkdownExtensionSet.GITHUB_WEB,
                     value=self._get_card_parameters_text()
+                ),
+                Row(
+                    alignment=MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        Markdown(
+                            value="#### Результат:"
+                        ),
+                        IconButton(
+                            icon=icons.KEYBOARD_ARROW_DOWN,
+                            data=self.ref_card_parameters_result,
+                            on_click=self._change_function_result_visible),
+                    ]
+                ),
+                Markdown(
+                    ref=self.ref_card_parameters_result,
+                    visible=False,
+                    selectable=True,
+                    extension_set=MarkdownExtensionSet.GITHUB_WEB,
+                    value=self._get_card_parameters_result()
                 )
             ]
         )
@@ -101,6 +122,9 @@ class FunctionCard(UserControl):
         self.result_view = Container(
             ref=self.ref_result_view,
             data=self,
+            bgcolor=colors.BLACK26,
+            border_radius=10,
+            padding=padding.only(left=5, top=10, right=20, bottom=10),
             content=self._get_result_view_list()
         )
         
@@ -301,38 +325,61 @@ class FunctionCard(UserControl):
         self.graphic_area.update()
 
 
-    def _get_card_parameters_text(self, max_rows=10) -> str:
+    def _get_card_parameters_text(self) -> str:
         '''
         Возвращает текст с параметрами для карточки функции
         '''
+        # \u00A0 - Unicode символ неразмеренного пробела
+        return '#### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '\n'
+    
+    
+    def _get_card_parameters_result(self, max_rows=10):
         df_list = self.function.result
+
+        if not df_list:
+            return '***Нет данных***'
+        
         markdown_table_list = []
         for df in df_list:
-            if len(df) <= max_rows:
-                markdown_table = df.to_markdown()
+            data_title = 'Данные для графика: ***' + df['type'] + '***\n\n'
+            data = df['data']
+
+            if len(data) <= max_rows:
+                markdown_table = data.to_markdown()
             else:
-                df_head = df.head(max_rows // 2)
-                df_tail = df.tail(max_rows // 2)
+                df_head = data.head(max_rows // 2)
+                df_tail = data.tail(max_rows // 2)
 
                 tail_rows = []
                 for idx, row in df_tail.iterrows():
                     row_text = f'| {idx} | ' + " | ".join(map(str, row)) + ' |'
                     tail_rows.append(row_text)
 
-                table_separator = '\n|' + '|'.join(['...'] * (df.shape[1] + 1)) + '|\n' if df.shape[0] > 10 else ""
-                markdown_table = df_head.to_markdown() + table_separator + '\n'.join(tail_rows)
+                table_separator = '\n|' + '|'.join(['...'] * (data.shape[1] + 1)) + '|\n' if data.shape[0] > 10 else ""
+                markdown_table = data_title + df_head.to_markdown() + table_separator + '\n'.join(tail_rows)
+                
             markdown_table_list.append(markdown_table)
-            
-        # \u00A0 - Unicode символ неразмеренного пробела
-        parameters_text = '#### Параметры:\n' + "; ".join([f"*{param}*:\u00A0**{value}**" for param, value in self.function.get_parameters_dict().items()]) + '\n'
-        return parameters_text + '#### Результат:\n\n' + '\n\n'.join(markdown_table_list)
-    
+        return '\n\n'.join(markdown_table_list)
+
+
+    def _change_function_result_visible(self, e) -> None:
+        markdown_result = e.control.data.current
+        markdown_result.visible = not markdown_result.visible
+
+        buntton = e.control
+        if markdown_result.visible:
+            buntton.icon = icons.KEYBOARD_ARROW_UP
+        else:
+            buntton.icon = icons.KEYBOARD_ARROW_DOWN
+        self.update()
+
 
     def update_card_parameters_text(self) -> None:
         '''
         Обновляет текст параметров в карточки функции
         '''
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
+        self.ref_card_parameters_result.current.value = self._get_card_parameters_result()
         self.update()
 
 
@@ -341,12 +388,13 @@ class FunctionCard(UserControl):
         Обновляет представление результатов в карточке функции
         '''
         dataframe = self.function.result
-        
+        # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
         data_points_list = []
         for df in dataframe:
+            data = df['data']
             data_points_list.append(
                 [
-                    LineChartDataPoint(x, y) for x, y in zip(df.iloc[:, 0], df.iloc[:, 1])
+                    LineChartDataPoint(x, y) for x, y in zip(data.iloc[:, 0], data.iloc[:, 1])
                 ]
             )
         # self.ref_result_view_LineChartData.current.data_points = data_points
@@ -356,7 +404,8 @@ class FunctionCard(UserControl):
 
     def _get_result_view_list(self) -> Column:
         dataframe_list = self.function.result
-
+        if not dataframe_list:
+            return None
         # result_view = ft.GridView(
         #     expand=True,
         #     runs_count=3 if len(dataframe_list) > 2 else len(dataframe_list),
@@ -368,12 +417,14 @@ class FunctionCard(UserControl):
         #         self._get_function_result_graphic(df) for df in dataframe_list
         #     ]
         # )
+        colors_list = ['green', 'blue', 'red', 'yellow', 'purple',
+                       'orange', 'pink', 'brown', 'cyan', 'magenta']
 
         graphs_cnt = len(dataframe_list)
         grid = []
         row = []
         for idx in range(1, graphs_cnt + 1):
-            row.append(self._get_function_result_graphic(dataframe_list[idx-1]))
+            row.append(self._get_function_result_graphic(dataframe_list[idx - 1], color=colors_list[idx - 1]))
             if (
                 graphs_cnt <= 3 
                 or len(row) == 3
@@ -384,7 +435,16 @@ class FunctionCard(UserControl):
                 row = []
         
         result_view = Column(
-            controls=grid
+            controls=
+            [
+                Row(
+                    alignment=MainAxisAlignment.CENTER,
+                    controls=[
+                        Text(value='Графики функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
+                    ]
+                ),
+                *grid
+            ]
         )
         return result_view
     
@@ -394,17 +454,20 @@ class FunctionCard(UserControl):
     
 
     def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False):
+        df = dataframe['data']
+        graphic_title = dataframe['type']
+
         data_series = []
 
         if color is None:
             color = colors.LIGHT_GREEN
 
         if column_names is None:
-            column_names = dataframe.columns.tolist()  # Получаем названия столбцов из датафрейма
+            column_names = df.columns.tolist()  # Получаем названия столбцов из датафрейма
 
         data_points = [
             LineChartDataPoint(x, y)
-            for x, y in zip(dataframe.iloc[:, 0], dataframe.iloc[:, 1])
+            for x, y in zip(df.iloc[:, 0], df.iloc[:, 1])
         ]
 
         data_series.append(
@@ -436,7 +499,7 @@ class FunctionCard(UserControl):
                 labels_size=30
             ),
             top_axis=ChartAxis(
-                title=Text(value=self.function_name, size=20),
+                title=Text(value=graphic_title, size=20),
                 title_size=30,
                 show_labels=False,
             ),

@@ -135,7 +135,7 @@ class Model:
         # Пересчет данных в заданный диапазон R
         min_val = np.min(noise_data)
         max_val = np.max(noise_data)
-        normalized_noise = ((noise_data - min_val) / (max_val - min_val + 1e-8) - 0.5) * 2 * R
+        normalized_noise = ((noise_data - min_val) / (max_val - min_val) - 0.5) * 2 * R
 
         t = np.arange(0, N * delta, delta)
         noised_data = pd.DataFrame({'x': t, 'y': normalized_noise})
@@ -146,6 +146,8 @@ class Model:
         }]
 
     def myNoise(data, N, R, delta) -> list:
+        N = int(N)
+
         current_time = int(time.time())
         random.seed(current_time)
 
@@ -157,6 +159,59 @@ class Model:
         return [{
             'data': noised_data,
             'type': 'myNoise',
+        }]
+    
+    def shift(inData, N, C, N1, N2) -> dict:
+        """
+        Сдвигает данные inData в интервале [N1, N2] на константу C.
+
+        :param inData: Входные данные (numpy массив)
+        :param N: Длина данных
+        :param C: Значение сдвига
+        :param N1: Начальный индекс интервала
+        :param N2: Конечный индекс интервала
+        :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
+        """
+        if N1 < 0 or N2 >= N:
+            print("Некорректные значения N1 и N2")
+            return []
+
+        shifted_data = inData.copy()
+        shifted_data[N1:N2+1] += C
+        shifted_df = pd.DataFrame({'x': np.arange(N), 'y': shifted_data})
+        shifted_df = Model.round_and_clip_dataframe(shifted_df)
+        return [{
+            'data': shifted_df,
+            'type': 'shift'
+        }]
+
+    def spikes(N, M, R, Rs) -> list:
+        """
+        Генерирует M случайных выбросов (спайков) на интервале [0, N] со случайными амплитудами.
+
+        :param N: Длина данных
+        :param M: Количество выбросов
+        :param R: Опорное значение
+        :param Rs: Диапазон варьирования амплитуды
+        :return: Данные с выбросами в виде структуры {'data': DataFrame, 'type': 'spikes'}
+        """
+        N = int(N)
+        M = int(M)
+        error_message = ""
+        if M < 0.005 * N or M > 0.01 * N:
+            error_message = f' - некорректное количество выбросов: M должно быть в пределах [{0.005*N}, {0.01*N}]'
+            # return []
+        
+        data = np.zeros(N)
+        spike_indices = np.random.choice(N, M, replace=False)
+        spike_amplitudes = R + np.random.uniform(-Rs, Rs, M)
+        spike_signs = np.random.choice([-1, 1], M)  # Выбираем случайный знак для выбросов
+        data[spike_indices] = spike_signs * spike_amplitudes
+        spikes_df = pd.DataFrame({'x': np.arange(N), 'y': data})
+        spikes_df = Model.round_and_clip_dataframe(spikes_df)
+        return [{
+            'data': spikes_df,
+            'type': 'spikes' + error_message
         }]
 
     # ========== ANALYSIS FUNCTIONS ==========
@@ -460,6 +515,70 @@ class Model:
                     "default_value": 1,
                 },
             }
+        },
+
+        # 'shift': {
+        #     'function': shift,
+        #     'type': 'edit',
+        #     'name': 'Сдвиг',
+        #     'parameters': {
+        #         'inData': {
+                    
+        #         },
+        #         'N': {
+                    
+        #         },
+        #         'C': {
+                    
+        #         },
+        #         'N1': {
+                    
+        #         },
+        #         'N2': {
+                    
+        #         },
+        #     }
+        # },
+
+        'spikes': {
+            'function': spikes,
+            'type': 'edit',
+            'name': 'Одиночные выбросы',
+            'parameters': {
+                'N': {
+                    "title": "Длина данных N",
+                    "type": "slider",
+                    "min": 100,
+                    "max": 10000,
+                    "step": 100,
+                    "default_value": 1000,
+                },
+                'M': {
+                    "title": "Количество выбросов M",
+                    "type": "slider",
+                    "min": 1,
+                    "max": 100,
+                    "step": 1,
+                    "default_value": 10,
+                },
+                'R': {
+                    "title": "Опорное значение R",
+                    "type": "slider",
+                    "min": 1,
+                    "max": 10000,
+                    "step": 1,
+                    "default_value": 1000,
+                },
+                'Rs': {
+                    "title": "Длина данных Rs",
+                    "type": "slider",
+                    "min": 1,
+                    "max": 1000,
+                    "step": 1,
+                    "default_value": 500,
+                }
+            }
+
         }
 
         # ========== ANALYSIS FUNCTIONS ==========

@@ -213,15 +213,15 @@ class FunctionCard(UserControl):
         # Цикл по всем параметрам
         for param_name, param in self.function.parameters_info.items():
             param_editor = None
-            match param['type']:
+            match param.get('type'):
                 case "dropdown":
                     param_editor = [
                         Dropdown(
                             dense=True,
-                            label=param['title'],
+                            label=param.get('title'),
                             options=[
-                                dropdown.Option(key=option['key'], text=option['text'])
-                                for option in param['options']
+                                dropdown.Option(key=option.get('key'), text=option.get('text'))
+                                for option in param.get('options', [])
                             ],
                             value=current_parameters[param_name],
                             data={
@@ -232,23 +232,23 @@ class FunctionCard(UserControl):
                     ]
                 case "slider":                    
                     ref_slider_text = Ref[Text]()
-                    slider_divisions = int((param['max'] - param['min']) / param['step'])
+                    slider_divisions = int((param.get('max') - param.get('min', 0)) / param.get('step'))
                     param_editor = [
                         Column(
                             controls=[
                                 Text(
                                     ref=ref_slider_text,
-                                    value=f'{param["title"]}: {current_parameters[param_name]}',
+                                    value=f'{param.get("title")}: {current_parameters[param_name]}',
                                 ),
                                 Slider(
-                                    min=param['min'],
-                                    max=param['max'],
+                                    min=param.get('min'),
+                                    max=param.get('max'),
                                     value=current_parameters[param_name],
                                     divisions=slider_divisions,
                                     label='{value}',
                                     data={
                                         "slider_text": ref_slider_text,
-                                        'param_title': param["title"],
+                                        'param_title': param.get("title"),
                                         'param_name': param_name
                                     },
                                     on_change=self._change_slider_title,
@@ -257,22 +257,22 @@ class FunctionCard(UserControl):
                         )
                     ]
                 case 'checkbox':
-                    ref_checkbox = [Ref[Checkbox]() for _ in range(len(param['checkboxes']))]
+                    ref_checkbox = [Ref[Checkbox]() for _ in range(len(param.get('checkboxes', [])))]
                     param_editor = [
                         Column(
                             controls=[
                                 Checkbox(
-                                    label=checkbox['label'],
-                                    value=checkbox['default_value'],
+                                    label=checkbox.get('label'),
+                                    value=checkbox.get('default_value'),
                                     ref=ref_checkbox[idx],
                                     data={
-                                        'key': checkbox['key'],
+                                        'key': checkbox.get('key'),
                                         'ref_checkboxes': ref_checkbox,
                                         'param_name': param_name,
                                     },
                                     on_change=self._on_checkbox_change
                                 )
-                                for idx, checkbox in enumerate(param['checkboxes'])
+                                for idx, checkbox in enumerate(param.get('checkboxes', []))
                             ]
                         )
                     ]
@@ -281,7 +281,7 @@ class FunctionCard(UserControl):
                         Column(
                             controls=[
                                 Text(
-                                    value=f'{param["title"]}',
+                                    value=f'{param.get("title")}',
                                 ),
                                 ft.FilePicker(
                                     on_upload=None
@@ -317,9 +317,9 @@ class FunctionCard(UserControl):
             e (Event): Событие изменения слайдера.
         '''
         # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
-        slider_title = e.control.data['slider_text'].current
-        slider_param_title = e.control.data['param_title']
-        slider_param_name = e.control.data['param_name']
+        slider_title = e.control.data.get('slider_text').current
+        slider_param_title = e.control.data.get('param_title')
+        slider_param_name = e.control.data.get('param_name')
         slider_param_value = round(e.control.value, 3)
 
         slider_title.value = f"{slider_param_title}: {slider_param_value}"
@@ -333,7 +333,7 @@ class FunctionCard(UserControl):
         '''
         Обновляет значение параметра в экземпляре класса Function и карточке функции
         '''
-        dropdown_param_name = e.control.data['param_name']
+        dropdown_param_name = e.control.data.get('param_name')
         dropdown_param_value = e.control.value
         
         self.function.set_parameter_value(dropdown_param_name, dropdown_param_value)
@@ -344,9 +344,9 @@ class FunctionCard(UserControl):
     
     def _on_checkbox_change(self, e) -> None:
 
-        checkbox_key = e.control.data['key']
+        checkbox_key = e.control.data.get('key')
         checkbox_value = e.control.value
-        checkbox_param_name = e.control.data['param_name']
+        checkbox_param_name = e.control.data.get('param_name')
 
         checkbox_param_value = self.function.get_parameter_value(checkbox_param_name)
         if checkbox_value:
@@ -375,8 +375,8 @@ class FunctionCard(UserControl):
         
         markdown_table_list = []
         for df in df_list:
-            data_title = 'Данные для графика: ***' + df['type'] + '***\n\n'
-            data = df['data']
+            data_title = 'Данные для графика: ***' + df.get('type') + '***\n\n'
+            data = df.get('data')
 
             if len(data) <= max_rows:
                 markdown_table = data.to_markdown()
@@ -398,8 +398,8 @@ class FunctionCard(UserControl):
 
     def _change_function_result_visible(self, e) -> None:
         result_block = e.control.data
-        result_control = result_block['control'].current
-        result_button = result_block['button'].current
+        result_control = result_block.get('control').current
+        result_button = result_block.get('button').current
 
         result_control.visible = not result_control.visible
 

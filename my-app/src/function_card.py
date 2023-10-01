@@ -51,7 +51,9 @@ class FunctionCard(UserControl):
 
         # Содержимое карточки функции
         self.ref_card_parameters_text = Ref[Markdown]()
-        self.ref_card_parameters_result = Ref[Markdown]()
+        self.ref_card_result = Ref[Column]()
+        self.ref_card_result_show_button = Ref[IconButton]()
+        self.ref_card_result_data = Ref[Markdown]()
         self.card_content = Column(
             expand=True,
             controls=[
@@ -82,16 +84,43 @@ class FunctionCard(UserControl):
                         ),
                         IconButton(
                             icon=icons.KEYBOARD_ARROW_DOWN,
-                            data=self.ref_card_parameters_result,
-                            on_click=self._change_function_result_visible),
+                            ref=self.ref_card_result_show_button,
+                            data={
+                                'control': self.ref_card_result,
+                                'button': self.ref_card_result_show_button,
+                            },
+                            on_click=self._change_function_result_visible
+                        ),
                     ]
                 ),
-                Markdown(
-                    ref=self.ref_card_parameters_result,
+                Column(
+                    ref=self.ref_card_result,
                     visible=False,
-                    selectable=True,
-                    extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                    value=self._get_card_parameters_result()
+                    controls=[
+                        Markdown(
+                            ref=self.ref_card_result_data,
+                            extension_set=MarkdownExtensionSet.GITHUB_WEB,
+                            value=self._get_card_parameters_result()
+                        ),
+                        Row(
+                            alignment=MainAxisAlignment.END,
+                            controls=[
+                                IconButton(
+                                    content=Row(
+                                        controls=[
+                                            Text(value="Скрыть результат"),
+                                            ft.Icon(name='KEYBOARD_ARROW_UP')
+                                        ]
+                                    ),
+                                    data={
+                                        'control': self.ref_card_result,
+                                        'button': self.ref_card_result_show_button,
+                                    },
+                                    on_click=self._change_function_result_visible
+                                ),
+                            ]
+                        )
+                    ]
                 )
             ]
         )
@@ -144,10 +173,12 @@ class FunctionCard(UserControl):
             self.card_view.border = border.all(color=colors.BLACK)
             self.card_view.bgcolor = colors.BLACK54
             self.parameters_view.visible = False
+            self.result_view.border = None
         else:
             self.card_view.border = border.all(color=colors.BLUE)
             self.card_view.bgcolor = colors.BLACK26
             self.parameters_view.visible = True
+            self.result_view.border = border.all(color=colors.BLUE)
         self.selected = not self.selected
         self.update()
     
@@ -357,14 +388,16 @@ class FunctionCard(UserControl):
 
 
     def _change_function_result_visible(self, e) -> None:
-        markdown_result = e.control.data.current
-        markdown_result.visible = not markdown_result.visible
+        result_block = e.control.data
+        result_control = result_block['control'].current
+        result_button = result_block['button'].current
 
-        buntton = e.control
-        if markdown_result.visible:
-            buntton.icon = icons.KEYBOARD_ARROW_UP
+        result_control.visible = not result_control.visible
+
+        if result_control.visible:
+            result_button.icon = icons.KEYBOARD_ARROW_UP
         else:
-            buntton.icon = icons.KEYBOARD_ARROW_DOWN
+            result_button.icon = icons.KEYBOARD_ARROW_DOWN
         self.update()
 
 
@@ -385,7 +418,7 @@ class FunctionCard(UserControl):
         # self.ref_result_view_LineChartData.current.data_points = data_points
         self.ref_result_view.current.content = self._get_result_view_list()
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
-        self.ref_card_parameters_result.current.value = self._get_card_parameters_result()
+        self.ref_card_result_data.current.value = self._get_card_parameters_result()
         self.update()
 
 
@@ -399,17 +432,7 @@ class FunctionCard(UserControl):
                         Text(value='Нет данных для построения графиков функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
                     ]
                 )
-        # result_view = ft.GridView(
-        #     expand=True,
-        #     runs_count=3 if len(dataframe_list) > 2 else len(dataframe_list),
-        #     max_extent=500,
-        #     child_aspect_ratio=1.0,
-        #     spacing=5,
-        #     run_spacing=5,
-        #     controls=[
-        #         self._get_function_result_graphic(df) for df in dataframe_list
-        #     ]
-        # )
+        
         colors_list = ['green', 'blue', 'red', 'yellow', 'purple',
                        'orange', 'pink', 'brown', 'cyan', 'magenta']
 
@@ -433,7 +456,7 @@ class FunctionCard(UserControl):
                 Row(
                     alignment=MainAxisAlignment.CENTER,
                     controls=[
-                        Text(value='Графики функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
+                        Text(value='График' + ('и' if graphs_cnt > 1 else '') + ' функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
                     ]
                 ),
                 *grid

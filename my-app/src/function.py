@@ -14,7 +14,7 @@ class Function:
         for param_name, param_info in self.parameters_info.items():
             setattr(self, param_name, param_info['default_value'])
 
-        self.calculate()
+        self._calculate()
 
 
     def get_parameter_value(self, param_name) -> Any:
@@ -29,7 +29,7 @@ class Function:
         Установка значения параметра по его имени
         '''
         setattr(self, param_name, value)
-        self.calculate()
+        self._calculate()
 
 
     def get_parameters_dict(self) -> dict:
@@ -42,7 +42,7 @@ class Function:
         return parameters
 
 
-    def calculate(self) -> Any:
+    def _calculate(self) -> None:
         """
         Выполняет расчет функции и возвращает результат.
 

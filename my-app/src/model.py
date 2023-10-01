@@ -191,22 +191,22 @@ Model.functions_info = {
                     "checkboxes": [
                         {
                             "key": "linear_rising",
-                            "label": "linear_rising",
+                            "label": "Линейно восходящий",
                             'default_value': True,
                         },
                         {
                             "key": "linear_falling",
-                            "label": "linear_falling",
+                            "label": "Линейно нисходящий",
                             'default_value': True,
                         },
                         {
                             "key": "nonlinear_rising",
-                            "label": "nonlinear_rising",
+                            "label": "Нелинейно восходящий",
                             'default_value': True,
                         },
                         {
                             "key": "nonlinear_falling",
-                            "label": "nonlinear_falling",
+                            "label": "Нелинейно нисходящий",
                             'default_value': True,
                         }
                     ],
@@ -259,22 +259,22 @@ Model.functions_info = {
                     "checkboxes": [
                         {
                             "key": "linear_rising",
-                            "label": "linear_rising",
+                            "label": "Линейно восходящий",
                             'default_value': True,
                         },
                         {
                             "key": "linear_falling",
-                            "label": "linear_falling",
+                            "label": "Линейно нисходящий",
                             'default_value': True,
                         },
                         {
                             "key": "nonlinear_rising",
-                            "label": "nonlinear_rising",
+                            "label": "Нелинейно восходящий",
                             'default_value': True,
                         },
                         {
                             "key": "nonlinear_falling",
-                            "label": "nonlinear_falling",
+                            "label": "Нелинейно нисходящий",
                             'default_value': True,
                         }
                     ],

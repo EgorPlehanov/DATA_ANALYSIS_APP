@@ -37,117 +37,17 @@ class GraphicArea(Row):
         self.list_functions_edit = []
         self.list_functions_analis = []
 
-        # Ссылки на выпадающие списки блоков (данные/обработка/анализ)
-        self.ref_dropdown_data = Ref[Dropdown]()
-        self.ref_dropdown_edit = Ref[Dropdown]()
-        self.ref_dropdown_analis = Ref[Dropdown]()
+        # Списки результатов для блоков области результатов (данные/обработка/анализ)
+        self.list_results_data = []
+        self.list_results_edit = []
+        self.list_results_analis = []
 
-        # Блок данных из меню работы с функциями
-        self.function_menu_data = Container(
-            # border=border.all(color=colors.GREEN),
-            bgcolor=colors.BLUE_GREY_900,
-            padding=5,
-            content=Column(
-                controls=[
-                    Markdown(value="### Данные"),
-                    Row(
-                        controls=[
-                            Dropdown(
-                                ref=self.ref_dropdown_data,
-                                dense=True,
-                                value=Model.get_functions_by_type('data')[0]['key'],
-                                options=[
-                                    dropdown.Option(key=option['key'], text=option['name'])
-                                    for option in Model.get_functions_by_type('data')
-                                ]
-                            ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
-                                    self.ref_dropdown_data,
-                                    self.list_functions_data,
-                                    self.list_results_data,
-                                    'data'
-                                )
-                            ),
-                        ]
-                    ),
-                    Column(
-                        controls=self.list_functions_data
-                    )
-                ]
-            )
-        )
+        # Ссылки на блоки в разделе результатов (данные/обработка/анализ)
+        self.ref_results_view_data = Ref[Column]()
+        self.ref_results_view_edit = Ref[Column]()
+        self.ref_results_view_analis = Ref[Column]()
 
-        # Блок обработки из меню работы с функциями
-        self.function_menu_edit = Container(
-            bgcolor=colors.BLUE_GREY_900,
-            padding=5,
-            # border=border.all(colors.BLACK),
-            content=Column(
-                controls=[
-                    Markdown(value="### Обработка"),
-                    Row(
-                        controls=[
-                            Dropdown(
-                                ref=self.ref_dropdown_edit,
-                                dense=True,
-                                # value=Model.get_functions_by_type('edit')[0]['key'],
-                                options=[
-                                    dropdown.Option(key=option['key'], text=option['name'])
-                                    for option in Model.get_functions_by_type('edit')
-                                ]
-                            ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
-                                    self.ref_dropdown_edit,
-                                    self.list_functions_edit,
-                                    self.list_results_edit,
-                                    'edit'
-                                )
-                            ),
-                        ]
-                    ),
-                    Column(
-                        controls=self.list_functions_edit
-                    )
-                ]
-            )
-        )
-
-        # Блок анализа из меню работы с функциями
-        self.function_menu_analis = Container(
-            bgcolor=colors.BLUE_GREY_900,
-            padding=5,
-            # border=border.all(colors.BLACK),
-            content=Column(
-                controls=[
-                    Markdown(value="### Анализ"),
-                    Row(
-                        controls=[
-                            Dropdown(
-                                ref=self.ref_dropdown_analis,
-                                dense=True,
-                                # value=Model.get_functions_by_type('analis')[0]['key'],
-                                options=[
-                                    dropdown.Option(key=option['key'], text=option['name'])
-                                    for option in Model.get_functions_by_type('analis')
-                                ]
-                            ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
-                                    self.ref_dropdown_analis,
-                                    self.list_functions_analis,
-                                    self.list_results_analis,
-                                    'analitic'
-                                )
-                            ),
-                        ]
-                    ),
-                    Column(
-                        controls=self.list_functions_analis
-                    )
-                ]
-            )
-        )
-
-        # Меню работы с функциями
+        # Меню работы с функциями c блоками (данные/обработка/анализ)
         self.function_menu = Container(
             bgcolor=colors.BLACK26,
             # border=border.all(color=colors.ORANGE),
@@ -157,9 +57,24 @@ class GraphicArea(Row):
                 tight=True,
                 scroll=ScrollMode.AUTO,
                 controls=[
-                    self.function_menu_data,
-                    self.function_menu_edit,
-                    self.function_menu_analis,
+                    self._get_function_menu_block(
+                        'data',
+                        'Данные',
+                        self.list_functions_data,
+                        self.list_results_data,
+                    ),
+                    self._get_function_menu_block(
+                        'edit',
+                        'Обработка',
+                        self.list_functions_edit,
+                        self.list_results_edit,
+                    ),
+                    self._get_function_menu_block(
+                        'analis',
+                        'Анализ',
+                        self.list_functions_analis,
+                        self.list_results_analis,
+                    ),
                 ]
             )
         )
@@ -180,73 +95,27 @@ class GraphicArea(Row):
             )
         )
 
-        # Списки результатов для блоков области результатов (данные/обработка/анализ)
-        self.list_results_data = []
-        self.list_results_edit = []
-        self.list_results_analis = []
-
-        # Ссылки на блоки в разделе результатов (данные/обработка/анализ)
-        self.ref_results_view_data = Ref[Column]()
-        self.ref_results_view_edit = Ref[Column]()
-        self.ref_results_view_analis = Ref[Column]()
-
-        # Вкладка данных из области результатов
-        self.results_view_tab_data =  Tab(
-            text="Данные",
-            content=Container(
-                border=border.all(color=colors.GREEN),
-                expand=False,
-                padding=10,
-                content=Column(
-                    tight=True,
-                    scroll=ScrollMode.AUTO,
-                    ref = self.ref_results_view_data,
-                    controls=self.list_results_data
-                ),
-            ),
-        )
-
-        # Вкладка обработки из области результатов
-        self.results_view_tab_edit = Tab(
-            text="Обработка",
-            content=Container(
-                expand=True,
-                border=border.all(color=colors.YELLOW),
-                padding=10,
-                content=Column(
-                    tight=True,
-                    scroll=ScrollMode.AUTO,
-                    ref = self.ref_results_view_edit,
-                    controls=self.list_results_edit
-                )
-            )
-        )
-
-        # Вкладка анализа из области результатов
-        self.results_view_tab_analis = Tab(
-            text="Анализ",
-            content=Container(
-                expand=True,
-                border=border.all(color=colors.RED),
-                padding=10,
-                content=Column(
-                    tight=True,
-                    scroll=ScrollMode.AUTO,
-                    ref = self.ref_results_view_analis,
-                    controls=self.list_results_analis
-                )
-            )
-        )
-
-        # Область вывода результатов
+        # Область вывода результатов с вкладками (данные/обработка/анализ)
         self.results_view = Container(
             expand=True,
             border=border.all(colors.BLACK),
             content=Tabs(
                 tabs=[
-                    self.results_view_tab_data,
-                    self.results_view_tab_edit,
-                    self.results_view_tab_analis,
+                    self._get_result_view_tab(
+                        'Данные',
+                        self.ref_results_view_data,
+                        self.list_results_data,
+                    ),
+                    self._get_result_view_tab(
+                        'Обработка',
+                        self.ref_results_view_edit,
+                        self.list_results_edit,
+                    ),
+                    self._get_result_view_tab(
+                        'Анализ',
+                        self.ref_results_view_analis,
+                        self.list_results_analis,
+                    ),
                 ]
             ),
         )
@@ -257,6 +126,90 @@ class GraphicArea(Row):
             self.parameters_menu,
             self.results_view,
         ]
+
+
+    def _get_function_menu_block(
+            self,
+            function_type: str,
+            block_name: str,
+            list_functions: List,
+            list_results: List,
+        ) -> Container:
+        '''
+        Функция создает блока меню работы с функциями
+
+        Args:
+            function_type (str): Тип функций в блоке.
+            block_name (str): Название блока.
+            list_functions (List[FunctionCard]): Список функций блока.
+            list_results (List[Container]): Список результатов.
+        '''
+        ref_dropdown = Ref[Dropdown]() # Ссылки на выпадающие списки блока
+        dropdown_options = Model.get_functions_by_type(function_type)
+        dropdown_default_value = dropdown_options[0]['key'] if dropdown_options else None
+        
+        # Блок из меню работы с функциями
+        function_menu = Container(
+            bgcolor=colors.BLUE_GREY_900,
+            padding=5,
+            # border=border.all(colors.BLACK),
+            content=Column(
+                controls=[
+                    Markdown(value="### " + block_name),
+                    Row(
+                        controls=[
+                            Dropdown(
+                                ref=ref_dropdown,
+                                dense=True,
+                                value=dropdown_default_value,
+                                options=[
+                                    dropdown.Option(key=option['key'], text=option['name'])
+                                    for option in dropdown_options
+                                ]
+                            ),
+                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
+                                    ref_dropdown,
+                                    list_functions,
+                                    list_results,
+                                    function_type
+                                )
+                            ),
+                        ]
+                    ),
+                    Column(
+                        controls=list_functions
+                    )
+                ]
+            )
+        )
+        return function_menu
+    
+    
+    def _get_result_view_tab(
+            self,
+            tab_name: str,
+            ref_results_view: Ref[Tab],
+            list_results: List
+        ) -> Tab:
+        '''
+
+        '''
+        # Вкладка из области результатов
+        results_view_tab =  Tab(
+            text=tab_name,
+            content=Container(
+                border=border.all(color=colors.GREEN),
+                expand=False,
+                padding=10,
+                content=Column(
+                    tight=True,
+                    scroll=ScrollMode.AUTO,
+                    # ref=ref_results_view,
+                    controls=list_results
+                ),
+            ),
+        )
+        return results_view_tab
 
 
     def add_function_to_list(

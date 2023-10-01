@@ -114,10 +114,11 @@ class Model:
     def data_download(input_data):
         pass
 
+
     
-Model.functions_info = {
+    functions_info = {
         "trend": {
-            "function": Model.trend,
+            "function": trend,
             'type': 'data',
             'name': 'trend',
             "parameters": {
@@ -181,7 +182,7 @@ Model.functions_info = {
 
 
         'multi_trend': {
-            'function': Model.multi_trend,
+            'function': multi_trend,
             'type': 'data',
             'name': 'multi_trend',
             'parameters': {
@@ -249,7 +250,7 @@ Model.functions_info = {
 
 
         'combinate_trend': {
-            'function': Model.combinate_trend,
+            'function': combinate_trend,
             'type': 'data',
             'name': 'combinate_trend',
             'parameters': {
@@ -317,7 +318,7 @@ Model.functions_info = {
 
 
         'data_download': {
-            'function': Model.data_download,
+            'function': data_download,
             'type': 'data',
             'name': 'Загрузить свой набор данных',
             'parameters': {

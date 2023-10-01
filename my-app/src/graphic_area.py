@@ -42,20 +42,15 @@ class GraphicArea(Row):
         self.list_results_edit = []
         self.list_results_analis = []
 
-        # Ссылки на блоки в разделе результатов (данные/обработка/анализ)
-        self.ref_results_view_data = Ref[Column]()
-        self.ref_results_view_edit = Ref[Column]()
-        self.ref_results_view_analis = Ref[Column]()
-
         # Меню работы с функциями c блоками (данные/обработка/анализ)
         self.function_menu = Container(
-            bgcolor=colors.BLACK26,
-            # border=border.all(color=colors.ORANGE),
-            alignment=alignment.top_center,
             width=350,
+            bgcolor=colors.BLACK26,
+            alignment=alignment.top_center,
             content=Column(
                 tight=True,
                 scroll=ScrollMode.AUTO,
+                spacing=5,
                 controls=[
                     self._get_function_menu_block(
                         'data',
@@ -103,17 +98,14 @@ class GraphicArea(Row):
                 tabs=[
                     self._get_result_view_tab(
                         'Данные',
-                        self.ref_results_view_data,
                         self.list_results_data,
                     ),
                     self._get_result_view_tab(
                         'Обработка',
-                        self.ref_results_view_edit,
                         self.list_results_edit,
                     ),
                     self._get_result_view_tab(
                         'Анализ',
-                        self.ref_results_view_analis,
                         self.list_results_analis,
                     ),
                 ]
@@ -152,7 +144,6 @@ class GraphicArea(Row):
         function_menu = Container(
             bgcolor=colors.BLUE_GREY_900,
             padding=5,
-            # border=border.all(colors.BLACK),
             content=Column(
                 controls=[
                     Markdown(value="### " + block_name),
@@ -188,23 +179,19 @@ class GraphicArea(Row):
     def _get_result_view_tab(
             self,
             tab_name: str,
-            ref_results_view: Ref[Tab],
             list_results: List
         ) -> Tab:
         '''
-
+        Функциия создания вкладки результатов
         '''
-        # Вкладка из области результатов
         results_view_tab =  Tab(
             text=tab_name,
             content=Container(
-                border=border.all(color=colors.GREEN),
                 expand=False,
                 padding=10,
                 content=Column(
                     tight=True,
                     scroll=ScrollMode.AUTO,
-                    # ref=ref_results_view,
                     controls=list_results
                 ),
             ),
@@ -240,11 +227,12 @@ class GraphicArea(Row):
             on_click_delete=self.delete_function,
         )
 
-        # Добавляем в список для блока (данные/обработка/анализ)
+        # Добавляем в список для блоков функций и результатов (данные/обработка/анализ)
         list_functions.append(function_card)
+        list_results.append(function_card.get_result_view())
+
         # Добавляем параметры функции в список
         self.list_function_parameters.append(function_card.get_parameters())
-        list_results.append(function_card.get_result_view())
         self.update()
 
 
@@ -309,4 +297,3 @@ class GraphicArea(Row):
                 self.list_results_edit.remove(reslut_view_to_remove)
         
         self.update()
-

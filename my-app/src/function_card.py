@@ -148,6 +148,7 @@ class FunctionCard(UserControl):
         # Представление результатов функции
         self.ref_result_view = Ref[Container]()
         self.ref_result_view_LineChartData = Ref[LineChartData]()
+
         self.result_view = Container(
             ref=self.ref_result_view,
             data=self,
@@ -308,13 +309,14 @@ class FunctionCard(UserControl):
         Args:
             e (Event): Событие изменения слайдера.
         '''
+        # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
         slider_title = e.control.data['slider_text'].current
         slider_param_title = e.control.data['param_title']
         slider_param_name = e.control.data['param_name']
         slider_param_value = round(e.control.value, 3)
 
         slider_title.value = f"{slider_param_title}: {slider_param_value}"
-        self.function.set_parameter_value(slider_param_name, slider_param_value) # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
+        self.function.set_parameter_value(slider_param_name, slider_param_value)
         
         self.update_function_card()
         self.graphic_area.update()
@@ -459,7 +461,7 @@ class FunctionCard(UserControl):
                         Text(value='График' + ('и' if graphs_cnt > 1 else '') + ' функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
                     ]
                 ),
-                *grid
+                Column(controls=grid)
             ]
         )
         return result_view

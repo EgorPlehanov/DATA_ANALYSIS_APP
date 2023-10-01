@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import time
+import random
 
 
 
@@ -24,6 +26,18 @@ class Model:
                 data_functions.append({'key': key, 'name': info.get('name', key)})
         return data_functions
     
+    def round_and_clip_dataframe(df, max_value: int = 1000000000, decimal_places: int = 4) -> pd.DataFrame:
+    # Округление значений в датафрейме
+        df = df.round(decimal_places)
+
+        # Удаление значений больше заданного порога
+        for col in df.columns:
+            df = df[df[col] <= max_value]
+
+        return df
+
+    
+    # ========== DATA FUNCTIONS ==========
 
     def trend_function_linear_rising(t, a, b):
         return a * t + b
@@ -38,7 +52,7 @@ class Model:
         return b * np.exp(-a * t)
 
 
-    def trend(type, a, b, step, N):
+    def trend(type, a, b, step, N) -> list:
         t = np.arange(0, N, step)
         data = None
 
@@ -52,15 +66,14 @@ class Model:
             data = Model.trend_function_nonlinear_falling(t, a, b)
 
         df = pd.DataFrame({'x': t, 'y': data})
-        df = df[df['y'] <= 1000000000]
-        df = df.round({'x': 4, 'y': 4})
+        df = Model.round_and_clip_dataframe(df)
         return [{
             'data': df,
             'type': type,
         }]
     
 
-    def multi_trend(type_list, a, b, step, N):
+    def multi_trend(type_list, a, b, step, N) -> list:
         if len(type_list) == 0:
             return []
         
@@ -70,7 +83,7 @@ class Model:
         return df_list
     
 
-    def combinate_trend(type_list, a, b, step, N):
+    def combinate_trend(type_list, a, b, step, N) -> list:
         num_parts = len(type_list)
         if num_parts == 0:
             return []
@@ -103,8 +116,7 @@ class Model:
             
         # Объединить результаты
         combined_df = pd.concat(df_list, ignore_index=True)
-        combined_df = combined_df[combined_df['y'] <= 1000000000]
-        combined_df = combined_df.round({'x': 4, 'y': 4})
+        combined_df = Model.round_and_clip_dataframe(combined_df)
         return [{
             'data': combined_df,
             'type': ' -> '.join(type_list)
@@ -113,10 +125,45 @@ class Model:
 
     def data_download(input_data):
         pass
+    
+    # ========== EDIT FUNCTIONS ==========
 
+    def noise(data, N, R, delta) -> list:
+        N = int(N)
+        # Генерация случайного шума в заданном диапазоне [-R, R]
+        noise_data = np.random.uniform(-R, R, N)
+        # Пересчет данных в заданный диапазон R
+        min_val = np.min(noise_data)
+        max_val = np.max(noise_data)
+        normalized_noise = ((noise_data - min_val) / (max_val - min_val + 1e-8) - 0.5) * 2 * R
+
+        t = np.arange(0, N * delta, delta)
+        noised_data = pd.DataFrame({'x': t, 'y': normalized_noise})
+        noised_data = Model.round_and_clip_dataframe(noised_data)
+        return [{
+            'data': noised_data,
+            'type': 'noise',
+        }]
+
+    def myNoise(data, N, R, delta) -> list:
+        current_time = int(time.time())
+        random.seed(current_time)
+
+        custom_noise_data = [random.uniform(-R, R) for _ in range(N)]
+    
+        t = np.arange(0, N * delta, delta)
+        noised_data = pd.DataFrame({'x': t, 'y': custom_noise_data})
+        noised_data = Model.round_and_clip_dataframe(noised_data)
+        return [{
+            'data': noised_data,
+            'type': 'myNoise',
+        }]
+
+    # ========== ANALYSIS FUNCTIONS ==========
 
     
     functions_info = {
+    # ========== DATA FUNCTIONS ==========
         "trend": {
             "function": trend,
             'type': 'data',
@@ -175,11 +222,10 @@ class Model:
                     "min": 100,
                     "max": 5000,
                     "step": 100,
-                    "default_value": 1000,
+                    "default_value": 600,
                 },
             }
         },
-
 
         'multi_trend': {
             'function': multi_trend,
@@ -243,11 +289,10 @@ class Model:
                     "min": 100,
                     "max": 5000,
                     "step": 100,
-                    "default_value": 1000,
+                    "default_value": 600,
                 },
             }
         },
-
 
         'combinate_trend': {
             'function': combinate_trend,
@@ -311,11 +356,10 @@ class Model:
                     "min": 100,
                     "max": 5000,
                     "step": 100,
-                    "default_value": 1000,
+                    "default_value": 600,
                 },
             }
         },
-
 
         'data_download': {
             'function': data_download,
@@ -328,5 +372,97 @@ class Model:
                     "default_value": None,
                 }
             }
+        },
+
+    # ========== EDIT FUNCTIONS ==========
+
+        'noise': {
+            'function': noise,
+            'type': 'edit',
+            'name': 'Случайный шум',
+            'parameters': {
+                'data': {
+                    "title": "Выбор функции данных",
+                    "type": "dropdown",
+                    "options": [
+                        {
+                            "key": None,
+                            "text": "Не выбрана",
+                        },
+                    ],
+                    "default_value": None,
+                },
+                'N': {
+                    "title": "Длина данных N",
+                    "type": "slider",
+                    "min": 10,
+                    "max": 5000,
+                    "step": 10,
+                    "default_value": 600,
+                },
+                'R': {
+                    "title": "Параметр диапозона R",
+                    "type": "slider",
+                    "min": 0.1,
+                    "max": 1000.0,
+                    "step": 0.1,
+                    "default_value": 0.1,
+                },
+                'delta': {
+                    "title": "Интервал Δ",
+                    "type": "slider",
+                    "min": 1,
+                    "max": 15,
+                    "step": 1,
+                    "default_value": 1,
+                },
+            }
+        },
+
+        'myNoise': {
+            'function': myNoise,
+            'type': 'edit',
+            'name': 'Мой случайный шум',
+            'parameters': {
+                'data': {
+                    "title": "Выбор функции данных",
+                    "type": "dropdown",
+                    "options": [
+                        {
+                            "key": None,
+                            "text": "Не выбрана",
+                        },
+                    ],
+                    "default_value": None,
+                },
+                'N': {
+                    "title": "Длина данных N",
+                    "type": "slider",
+                    "min": 10,
+                    "max": 5000,
+                    "step": 10,
+                    "default_value": 600,
+                },
+                'R': {
+                    "title": "Параметр диапозона R",
+                    "type": "slider",
+                    "min": 0.1,
+                    "max": 1000.0,
+                    "step": 0.1,
+                    "default_value": 0.1,
+                },
+                'delta': {
+                    "title": "Интервал Δ",
+                    "type": "slider",
+                    "min": 1,
+                    "max": 15,
+                    "step": 1,
+                    "default_value": 1,
+                },
+            }
         }
+
+        # ========== ANALYSIS FUNCTIONS ==========
+
+
     }

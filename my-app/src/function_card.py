@@ -1,5 +1,5 @@
-import random
 from typing import Any
+import pandas as pd
 import flet as ft
 from flet import (
     UserControl,
@@ -9,6 +9,7 @@ from flet import (
     MainAxisAlignment,
     Text,
     IconButton,
+    Icon,
     icons,
     Markdown,
     border,
@@ -27,6 +28,12 @@ from flet import (
     Checkbox,
     padding,
     FontWeight,
+    DataTable,
+    DataColumn,
+    DataRow,
+    DataCell,
+    ScrollMode,
+    BorderSide
 )
 from function import Function
 
@@ -61,7 +68,7 @@ class FunctionCard(UserControl):
                     alignment=MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
                         Markdown(
-                            extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                            extension_set=MarkdownExtensionSet.GITHUB_WEB,
                             value='#### Функция:\n**' + self.function.name + '** (' + ', '.join(self.function.parameters_names) + ')',
                         ),
                         IconButton(
@@ -109,7 +116,7 @@ class FunctionCard(UserControl):
                                     content=Row(
                                         controls=[
                                             Text(value="Скрыть результат"),
-                                            ft.Icon(name='KEYBOARD_ARROW_UP')
+                                            Icon(name='KEYBOARD_ARROW_UP')
                                         ]
                                     ),
                                     data={
@@ -407,17 +414,18 @@ class FunctionCard(UserControl):
         '''
         Обновляет текст параметров в карточки функции
         '''
-        dataframe = self.function.result
         # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
-        data_points_list = []
-        for df in dataframe:
-            data = df['data']
-            data_points_list.append(
-                [
-                    LineChartDataPoint(x, y) for x, y in zip(data.iloc[:, 0], data.iloc[:, 1])
-                ]
-            )
+        # dataframe = self.function.result
+        # data_points_list = []
+        # for df in dataframe:
+        #     data = df['data']
+        #     data_points_list.append(
+        #         [
+        #             LineChartDataPoint(x, y) for x, y in zip(data.iloc[:, 0], data.iloc[:, 1])
+        #         ]
+        #     )
         # self.ref_result_view_LineChartData.current.data_points = data_points
+        
         self.ref_result_view.current.content = self._get_result_view_list()
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
         self.ref_card_result_data.current.value = self._get_card_parameters_result()
@@ -427,13 +435,16 @@ class FunctionCard(UserControl):
 
     def _get_result_view_list(self) -> Column:
         dataframe_list = self.function.result
+        result_view = None
+
         if not dataframe_list:
-            return Row(
-                    alignment=MainAxisAlignment.CENTER,
-                    controls=[
-                        Text(value='Нет данных для построения графиков функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
-                    ]
-                )
+            result_view = Row(
+                alignment=MainAxisAlignment.CENTER,
+                controls=[
+                    Text(value='Нет данных для построения графиков функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
+                ]
+            )
+            return result_view
         
         colors_list = ['green', 'blue', 'red', 'yellow', 'purple',
                        'orange', 'pink', 'brown', 'cyan', 'magenta']
@@ -442,12 +453,15 @@ class FunctionCard(UserControl):
         grid = []
         row = []
         for idx in range(1, graphs_cnt + 1):
-            row.append(self._get_function_result_graphic(dataframe_list[idx - 1], color=colors_list[idx - 1]))
+            row.append(
+                Column(expand=True, controls=[
+                    Row(controls=[self._get_function_result_graphic(dataframe_list[idx - 1], color=colors_list[idx - 1])]),
+                    # self._get_datatable(dataframe_list[idx - 1]['data']), # ВЫВОД ТАБЛИЦЫ ДАННЫХ
+            ]))
+                
             if (
-                graphs_cnt <= 3 
-                or len(row) == 3
+                graphs_cnt <= 3 or len(row) == 3 or idx == graphs_cnt
                 or (graphs_cnt % 3 == 1 and graphs_cnt - idx < 3 and len(row) == 2)
-                or idx == graphs_cnt
             ):
                 grid.append(Row(controls=row))
                 row = []
@@ -461,7 +475,7 @@ class FunctionCard(UserControl):
                         Text(value='График' + ('и' if graphs_cnt > 1 else '') + ' функции ' + self.function_name, weight=FontWeight.BOLD, size=20),
                     ]
                 ),
-                Column(controls=grid)
+                Column(controls=grid),
             ]
         )
         return result_view
@@ -471,7 +485,7 @@ class FunctionCard(UserControl):
         return self.result_view
     
 
-    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False):
+    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False) -> LineChart:
         df = dataframe['data']
         graphic_title = dataframe['type']
 
@@ -523,12 +537,10 @@ class FunctionCard(UserControl):
             ),
             border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
             horizontal_grid_lines=ChartGridLines(
-                width=1,
-                color=colors.with_opacity(0.2, colors.ON_SURFACE), 
+                width=1, color=colors.with_opacity(0.2, colors.ON_SURFACE),
             ),
             vertical_grid_lines=ChartGridLines(
-                width=1,
-                color=colors.with_opacity(0.2, colors.ON_SURFACE),
+                width=1, color=colors.with_opacity(0.2, colors.ON_SURFACE),
             ),
             tooltip_bgcolor=colors.with_opacity(0.8, colors.BLACK38),
             expand=True,
@@ -536,3 +548,64 @@ class FunctionCard(UserControl):
 
         return chart
 
+
+    def _get_datatable(self, dataframe) -> Row:
+        '''
+        
+        '''
+        transposed_dataframe = dataframe.transpose()
+
+        # Создайте таблицу с заголовками (индексами)
+        header_table = DataTable(
+            columns=[DataColumn(Text(""))],
+            rows=[
+                DataRow([DataCell(Text(str(idx)))])
+                for idx in transposed_dataframe.index
+            ],
+            border=border.only(right=BorderSide(1, color=colors.with_opacity(0.2, colors.ON_SURFACE))),
+            horizontal_margin=10,
+            heading_row_height=40,
+            data_row_max_height=40,
+        )
+
+        # Создайте таблицу с данными
+        data_table = DataTable(
+            columns=[
+                DataColumn(Text(str(col)), numeric=True)
+                for col in transposed_dataframe.columns
+            ],
+            rows=[
+                DataRow(
+                    cells=[
+                        DataCell(content=Text(str(value)) if not pd.isna(value) else '')
+                        for value in transposed_dataframe.loc[idx]
+                    ]
+                )
+                for idx in transposed_dataframe.index
+            ],
+            column_spacing=15,
+            heading_row_height=40,
+            data_row_max_height=40,
+            vertical_lines=BorderSide(1, color=colors.with_opacity(0.05, colors.ON_SURFACE))
+        )
+
+        datatable = Container(
+            content=Row(
+                spacing=0,
+                controls=[
+                    header_table,
+                    Row(
+                        expand=True,
+                        tight=True,
+                        scroll=ScrollMode.ADAPTIVE,
+                        controls=[data_table]
+                    )
+                ]
+            ),
+            border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+            border_radius=10,
+            margin=ft.margin.only(left=70),
+        )
+        
+        return datatable
+    

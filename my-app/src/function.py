@@ -13,7 +13,7 @@ class Function:
 
         for param_name, param_info in self.parameters_info.items():
             setattr(self, param_name, param_info['default_value'])
-
+        
         self._calculate()
 
 
@@ -52,5 +52,6 @@ class Function:
         # Содаем словарь параметров со значениями
         parameters = self.get_parameters_dict()
         if not parameters:
-            return None
-        self.result = self.function(**parameters)
+            self.result = []
+        else:
+            self.result = self.function(**parameters)

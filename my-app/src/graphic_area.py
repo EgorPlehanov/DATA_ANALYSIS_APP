@@ -35,12 +35,12 @@ class GraphicArea(Row):
         # Списоки функций блоков (данные/обработка/анализ)
         self.list_functions_data = []
         self.list_functions_edit = []
-        self.list_functions_analis = []
+        self.list_functions_analitic = []
 
         # Списки результатов для блоков области результатов (данные/обработка/анализ)
         self.list_results_data = []
         self.list_results_edit = []
-        self.list_results_analis = []
+        self.list_results_analitic = []
 
         # Меню работы с функциями c блоками (данные/обработка/анализ)
         self.function_menu = Container(
@@ -65,10 +65,10 @@ class GraphicArea(Row):
                         self.list_results_edit,
                     ),
                     self._get_function_menu_block(
-                        'analis',
+                        'analitic',
                         'Анализ',
-                        self.list_functions_analis,
-                        self.list_results_analis,
+                        self.list_functions_analitic,
+                        self.list_results_analitic,
                     ),
                 ]
             )
@@ -106,7 +106,7 @@ class GraphicArea(Row):
                     ),
                     self._get_result_view_tab(
                         'Анализ',
-                        self.list_results_analis,
+                        self.list_results_analitic,
                     ),
                 ]
             ),
@@ -138,7 +138,7 @@ class GraphicArea(Row):
         '''
         ref_dropdown = Ref[Dropdown]() # Ссылки на выпадающие списки блока
         dropdown_options = Model.get_functions_by_type(function_type)
-        dropdown_default_value = dropdown_options[0]['key'] if dropdown_options else None
+        dropdown_default_value = dropdown_options[0].get('key') if dropdown_options else None
         
         # Блок из меню работы с функциями
         function_menu = Container(
@@ -154,7 +154,7 @@ class GraphicArea(Row):
                                 dense=True,
                                 value=dropdown_default_value,
                                 options=[
-                                    dropdown.Option(key=option['key'], text=option['name'])
+                                    dropdown.Option(key=option.get('key'), text=option.get('name'))
                                     for option in dropdown_options
                                 ]
                             ),
@@ -293,7 +293,7 @@ class GraphicArea(Row):
                 self.list_functions_edit.remove(function_to_remove)
                 self.list_results_edit.remove(reslut_view_to_remove)
             case 'analitic':
-                self.list_functions_analis.remove(function_to_remove)
-                self.list_results_edit.remove(reslut_view_to_remove)
+                self.list_functions_analitic.remove(function_to_remove)
+                self.list_results_analitic.remove(reslut_view_to_remove)
         
         self.update()

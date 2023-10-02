@@ -7,6 +7,7 @@ from flet import (
     Row,
     Column,
     MainAxisAlignment,
+    CrossAxisAlignment,
     Text,
     IconButton,
     Icon,
@@ -453,12 +454,22 @@ class FunctionCard(UserControl):
         grid = []
         row = []
         for idx in range(1, graphs_cnt + 1):
-            row.append(
-                Column(expand=True, controls=[
+            element_view = []
+            view_list = dataframe_list[idx - 1].get('view')
+            if 'chart' in view_list:
+                element_view.append(
                     Row(controls=[self._get_function_result_graphic(dataframe_list[idx - 1], color=colors_list[idx - 1])]),
-                    # self._get_datatable(dataframe_list[idx - 1]['data']), # ВЫВОД ТАБЛИЦЫ ДАННЫХ
-            ]))
-                
+                )
+            if 'table_data' in view_list:
+                element_view.append(
+                    self._get_datatable_data(dataframe_list[idx - 1].get('data')),
+                )
+            if 'table_statistics' in view_list:
+                element_view.append(
+                    self._get_datatable_statistics(dataframe_list[idx - 1].get('data')),
+                )
+            row.append(Column(expand=True, controls=element_view))
+
             if (
                 graphs_cnt <= 3 or len(row) == 3 or idx == graphs_cnt
                 or (graphs_cnt % 3 == 1 and graphs_cnt - idx < 3 and len(row) == 2)
@@ -486,8 +497,8 @@ class FunctionCard(UserControl):
     
 
     def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False) -> LineChart:
-        df = dataframe['data']
-        graphic_title = dataframe['type']
+        df = dataframe.get('data')
+        graphic_title = dataframe.get('type', 'Нет данных')
 
         data_series = []
 
@@ -549,7 +560,7 @@ class FunctionCard(UserControl):
         return chart
 
 
-    def _get_datatable(self, dataframe) -> Row:
+    def _get_datatable_data(self, dataframe) -> Row:
         '''
         
         '''
@@ -589,23 +600,95 @@ class FunctionCard(UserControl):
             vertical_lines=BorderSide(1, color=colors.with_opacity(0.05, colors.ON_SURFACE))
         )
 
+        ref_table = Ref[Container]()
+        datatable = Row(
+            vertical_alignment=CrossAxisAlignment.START,
+            spacing=0,
+            controls=[
+                IconButton(
+                    icon=icons.KEYBOARD_ARROW_UP,
+                    data={
+                        'control': ref_table,
+                        'name': 'Показать таблицу данных',
+                    },
+                    on_click=self.test
+                ),
+                Container(
+                    ref=ref_table,
+                    expand=True,
+                    content=Row(
+                        spacing=0,
+                        controls=[
+                            header_table,
+                            Row(
+                                expand=True,
+                                tight=True,
+                                scroll=ScrollMode.ADAPTIVE,
+                                controls=[data_table]
+                            )
+                        ]
+                    ),
+                    border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+                    border_radius=10,
+                )
+            ]
+        )
+        return datatable
+    
+    def _get_datatable_statistics(self, dataframe) -> Container:
+        columns = [DataColumn(Text(col)) for col in dataframe.columns]
+        rows = []
+
+        for _, row in dataframe.iterrows():
+            cells = [DataCell(Text(str(value))) for value in row]
+            rows.append(DataRow(cells=cells))
+
+        ref_table = Ref[DataTable]()
         datatable = Container(
             content=Row(
+                vertical_alignment=CrossAxisAlignment.START,
                 spacing=0,
                 controls=[
-                    header_table,
-                    Row(
+                    IconButton(
+                        icon=icons.KEYBOARD_ARROW_UP,
+                        data={
+                            'control': ref_table,
+                            'name': 'Показать таблицу статистических параметров',
+                        },
+                        on_click=self.test
+                    ),
+                    DataTable(
+                        columns=columns,
+                        rows=rows,
+                        ref=ref_table,
+                        border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+                        vertical_lines=BorderSide(1, color=colors.with_opacity(0.05, colors.ON_SURFACE)),
+                        border_radius=10,
                         expand=True,
-                        tight=True,
-                        scroll=ScrollMode.ADAPTIVE,
-                        controls=[data_table]
                     )
                 ]
-            ),
-            border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
-            border_radius=10,
-            margin=ft.margin.only(left=70),
+            )
         )
         
         return datatable
     
+    def test(self, e) -> None:
+        data = e.control.data
+        control = data.get('control').current
+        button = e.control
+        button_name = data.get('name')
+
+        control.visible = not control.visible
+
+        if control.visible:
+            button.icon = icons.KEYBOARD_ARROW_UP
+            button.content = None
+        else:
+            button.icon = None
+            button.content = Row(
+                controls=[
+                    Icon(name='KEYBOARD_ARROW_DOWN'),
+                    Text(value=button_name),
+                ]
+            )
+        self.graphic_area.update()

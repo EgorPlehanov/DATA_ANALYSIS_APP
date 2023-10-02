@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 import time
 import random
 
@@ -7,14 +8,16 @@ import random
 
 class Model:
     @staticmethod
-    def get_info(name, return_type='both'):
+    def get_info(name, return_type='all') -> dict:
         if name in Model.functions_info:
             info = Model.functions_info[name]
             if return_type == 'function':
-                return info['function']
+                return info.get('function')
             elif return_type == 'parameters':
-                return info['parameters']
-            elif return_type == 'both':
+                return info.get('parameters')
+            elif return_type == 'type':
+                return info.get('type')
+            elif return_type == 'all':
                 return info
         return None
     
@@ -70,6 +73,7 @@ class Model:
         return [{
             'data': df,
             'type': type,
+            'view': ['chart'],
         }]
     
 
@@ -119,7 +123,8 @@ class Model:
         combined_df = Model.round_and_clip_dataframe(combined_df)
         return [{
             'data': combined_df,
-            'type': ' -> '.join(type_list)
+            'type': ' -> '.join(type_list),
+            'view': ['chart'],
         }]
 
 
@@ -143,7 +148,9 @@ class Model:
         return [{
             'data': noised_data,
             'type': 'noise',
+            'view': ['chart', 'table_data'],
         }]
+
 
     def myNoise(data, N, R, delta) -> list:
         N = int(N)
@@ -159,9 +166,11 @@ class Model:
         return [{
             'data': noised_data,
             'type': 'myNoise',
+            'view': ['chart']#, 'table_data'],
         }]
     
-    def shift(inData, N, C, N1, N2) -> dict:
+
+    def shift(data, N, C, N1, N2) -> dict:
         """
         Сдвигает данные inData в интервале [N1, N2] на константу C.
 
@@ -172,18 +181,27 @@ class Model:
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
-        if N1 < 0 or N2 >= N:
-            print("Некорректные значения N1 и N2")
-            return []
+        data = Model.noise(None, N, 100, 1)[0]['data']['y']  # ДЛЯ ТЕСТА
 
-        shifted_data = inData.copy()
+        N, N1, N2 = int(N), int(N1), int(N2)
+
+        if N1 > N2:
+            N1, N2 = N2, N1
+        error_message = ''
+        if N1 < 0 or N2 >= N:
+            error_message = f' - некорректные значения N1 и N2: 0 <= {N1} (N1), {N2} (N2) <= {N} (N)'
+            # return []
+
+        shifted_data = data.copy()
         shifted_data[N1:N2+1] += C
         shifted_df = pd.DataFrame({'x': np.arange(N), 'y': shifted_data})
         shifted_df = Model.round_and_clip_dataframe(shifted_df)
         return [{
             'data': shifted_df,
-            'type': 'shift'
+            'type': 'shift' + error_message,
+            'view': ['chart']#, 'table_data'],
         }]
+
 
     def spikes(N, M, R, Rs) -> list:
         """
@@ -211,10 +229,64 @@ class Model:
         spikes_df = Model.round_and_clip_dataframe(spikes_df)
         return [{
             'data': spikes_df,
-            'type': 'spikes' + error_message
+            'type': 'spikes' + error_message,
+            'view': ['chart']#, 'table_data'],
         }]
 
-    # ========== ANALYSIS FUNCTIONS ==========
+    # ========== ANALITIC FUNCTIONS ==========
+
+    def statistics(data) -> list:
+        """
+        Рассчитывает статистические характеристики данных.
+
+        :param data: Данные для анализа (представленные в виде DataFrame)
+        :param N: Длина данных
+        :param type: Тип данных ('trend' или 'noise')
+        :return: DataFrame с рассчитанными статистическими характеристиками
+        """
+        data = Model.noise(None, 1000, 100, 1)[0]  # ДЛЯ ТЕСТА
+
+
+        type = data.get('type')
+        dataframe = data.get('data')
+        y = dataframe['y'].values
+
+        N = len(y)
+        min_value = np.min(y)
+        max_value = np.max(y)
+        mean = np.mean(y)
+        variance = np.var(y, ddof=1)  # Используем ddof=1 для несмещенной оценки дисперсии
+        std_dev = np.sqrt(variance)
+        
+        # Рассчет асимметрии и коэффициента асимметрии
+        mu3 = np.mean((y - mean) ** 3)
+        delta3 = np.power(variance, 1.5)
+        skewness = mu3 / delta3
+        skewness_coeff = skewness / np.power(variance, 1.5)
+        
+        # Рассчет эксцесса и коэффициента эксцесса
+        mu4 = np.mean((y - mean) ** 4)
+        kurtosis = mu4 / np.power(variance, 2) - 3
+        kurtosis_coeff = kurtosis / (variance ** 2) - 3
+
+        # Рассчет Среднего квадрата и Среднеквадратической ошибки
+        squared_mean = np.mean(y ** 2)
+        rmse = np.sqrt(variance)
+
+        stats_df = pd.DataFrame({
+            'Параметр': ['Тип', 'Минимум', 'Максимум', 'Среднее', 'Дисперсия', 'Стандартное отклонение', 'Асимметрия (A)',
+                         'Коэффициент асимметрии', 'Эксцесс (Э)', 'Куртозис', 'Средний квадрат (СК)', 'Среднеквадратическая ошибка'],
+            'Значение': [type] + list(map(lambda x: round(x, 5),
+                [min_value, max_value, mean, variance, std_dev, skewness,
+                skewness_coeff, kurtosis, kurtosis_coeff, squared_mean, rmse]))
+        })
+        return [{
+            'data': stats_df,
+            'type': 'statistics',
+            'view': ['table_statistics'],
+        }]
+    
+
 
     
     functions_info = {
@@ -437,7 +509,7 @@ class Model:
             'name': 'Случайный шум',
             'parameters': {
                 'data': {
-                    "title": "Выбор функции данных",
+                    "title": "Выбор данных",
                     "type": "dropdown",
                     "options": [
                         {
@@ -480,7 +552,7 @@ class Model:
             'name': 'Мой случайный шум',
             'parameters': {
                 'data': {
-                    "title": "Выбор функции данных",
+                    "title": "Выбор данных",
                     "type": "dropdown",
                     "options": [
                         {
@@ -517,28 +589,57 @@ class Model:
             }
         },
 
-        # 'shift': {
-        #     'function': shift,
-        #     'type': 'edit',
-        #     'name': 'Сдвиг',
-        #     'parameters': {
-        #         'inData': {
-                    
-        #         },
-        #         'N': {
-                    
-        #         },
-        #         'C': {
-                    
-        #         },
-        #         'N1': {
-                    
-        #         },
-        #         'N2': {
-                    
-        #         },
-        #     }
-        # },
+        'shift': {
+            'function': shift,
+            'type': 'edit',
+            'name': 'Сдвиг',
+            'parameters': {
+                # НАПИСАТЬ ПАРАМЕТР ДЛЯ ВЫБОРА НАБОРА ДАННЫХ ИЗ БЛОКА data
+                'data': {
+                    "title": "Выбор данных",
+                    "type": "dropdown",
+                    "options": [
+                        {
+                            "key": None,
+                            "text": "Не выбрана",
+                        },
+                    ],
+                    "default_value": None,
+                },
+                'N': {
+                    "title": "Длина данных N",
+                    "type": "slider",
+                    "min": 100,
+                    "max": 10000,
+                    "step": 10,
+                    "default_value": 1000,
+                },
+                'C': {
+                    "title": "Cмещение данных C",
+                    "type": "slider",
+                    "min": -1000,
+                    "max": 1000,
+                    "step": 0.1,
+                    "default_value": 200,
+                },
+                'N1': {
+                    "title": "Cмещение от N1",
+                    "type": "slider",
+                    "min": 0,
+                    "max": 5000,
+                    "step": 1,
+                    "default_value": 100,
+                },
+                'N2': {
+                    "title": "Cмещение до N2",
+                    "type": "slider",
+                    "min": 0,
+                    "max": 5000,
+                    "step": 1,
+                    "default_value": 500,
+                },
+            }
+        },
 
         'spikes': {
             'function': spikes,
@@ -576,12 +677,29 @@ class Model:
                     "max": 1000,
                     "step": 1,
                     "default_value": 500,
-                }
+                },
             }
 
+        },
+
+        # ========== ANALITIC FUNCTIONS ==========
+
+        'statistics': {
+            'function': statistics,
+            'type': 'analitic',
+            'name': 'Статистические данные',
+            'parameters': {
+                'data': {
+                    "title": "Выбор данных",
+                    "type": "dropdown",
+                    "options": [
+                        {
+                            "key": None,
+                            "text": "Не выбрана",
+                        },
+                    ],
+                    "default_value": None,
+                },
+            }
         }
-
-        # ========== ANALYSIS FUNCTIONS ==========
-
-
     }

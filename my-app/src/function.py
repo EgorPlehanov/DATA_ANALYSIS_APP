@@ -8,6 +8,7 @@ class Function:
     def __init__(self, name):
         self.name = name
         self.function = Model.get_info(self.name, return_type='function')
+        self.type = Model.get_info(self.name, return_type='type')
         self.parameters_info = Model.get_info(self.name, return_type='parameters')
         self.parameters_names = list(self.parameters_info.keys())
 

@@ -67,7 +67,7 @@ class DataAnalysisApp(UserControl):
             actions_alignment=ft.MainAxisAlignment.END,
             on_dismiss=lambda e: print("Modal dialog dismissed!"),
         )
-        self.tabs_bar = Tabs()
+        self.tabs_bar = Tabs(animation_duration=200)
 
         # ВРЕМЕННОЕ ПРЕДСТАВЛЕНИЕ ВКЛАДКИ РАБОТЫ С ИЗОБРАЖЕНИЯМИ ->
         self.image_area = Row(

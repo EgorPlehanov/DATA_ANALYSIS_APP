@@ -174,26 +174,27 @@ class Model:
         }]
     
 
-    def shift(data, N, C, N1, N2) -> dict:
+    def shift(data, C, N1, N2) -> dict:
         """
-        Сдвигает данные inData в интервале [N1, N2] на константу C.
+        Сдвигает данные data в интервале [N1, N2] на константу C.
 
-        :param inData: Входные данные (numpy массив)
-        :param N: Длина данных
+        :param data: Входные данные (сгенерированные в блоке данных)
         :param C: Значение сдвига
         :param N1: Начальный индекс интервала
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
+        print(data)
         if not data:
             return []
-        # data = Model.noise(None, N, 100, 1)[0]  # ДЛЯ ТЕСТА
 
         N1, N2 = int(N1), int(N2)
         if N1 > N2:
             N1, N2 = N2, N1
 
         result_list = []
+        result_list.extend(data)
+
         for df_dict in data:
             df = df_dict.get('data')
             N = len(df)
@@ -201,7 +202,6 @@ class Model:
             error_message = ''
             if N1 < 0 or N2 >= N:
                 error_message = f' - некорректные значения N1 и N2: 0 <= {N1} (N1), {N2} (N2) <= {N} (N)'
-                # return []
 
             shifted_df = df.get('y').copy()
             shifted_df[N1:N2+1] += C
@@ -213,6 +213,7 @@ class Model:
                 'type': f'shift ({df_dict.get("type")}) {error_message}',
                 'view': ['chart']#, 'table_data'],
             })
+        print(result_list)
         return result_list
 
 
@@ -231,7 +232,6 @@ class Model:
         error_message = ""
         if M < 0.005 * N or M > 0.01 * N:
             error_message = f' - некорректное количество выбросов: M должно быть в пределах [{0.005*N}, {0.01*N}]'
-            # return []
         
         data = np.zeros(N)
         spike_indices = np.random.choice(N, M, replace=False)
@@ -253,54 +253,56 @@ class Model:
         Рассчитывает статистические характеристики данных.
 
         :param data: Данные для анализа (представленные в виде DataFrame)
-        :param N: Длина данных
-        :param type: Тип данных ('trend' или 'noise')
         :return: DataFrame с рассчитанными статистическими характеристиками
         """
-        data = Model.noise(None, 1000, 100, 1)[0]  # ДЛЯ ТЕСТА
+        if not data:
+            return []
 
+        # data = Model.noise(None, 1000, 100, 1)
 
-        type = data.get('type')
-        df = data.get('data')
-        y = df['y'].values
+        result_list = []
+        result_list.extend(data)
 
-        N = len(y)
-        min_value = np.min(y)
-        max_value = np.max(y)
-        mean = np.mean(y)
-        variance = np.var(y, ddof=1)  # Используем ddof=1 для несмещенной оценки дисперсии
-        std_dev = np.sqrt(variance)
-        
-        # Рассчет асимметрии и коэффициента асимметрии
-        mu3 = np.mean((y - mean) ** 3)
-        delta3 = np.power(variance, 1.5)
-        skewness = mu3 / delta3
-        skewness_coeff = skewness / np.power(variance, 1.5)
-        
-        # Рассчет эксцесса и коэффициента эксцесса
-        mu4 = np.mean((y - mean) ** 4)
-        kurtosis = mu4 / np.power(variance, 2)
-        kurtosis_coeff = kurtosis / (variance ** 2) - 3
+        for df_dict in data:
+            df = df_dict.get('data')
+            y = df.get('y').copy()
 
-        # Рассчет Среднего квадрата и Среднеквадратической ошибки
-        squared_mean = np.mean(y ** 2)
-        rmse = np.sqrt(variance)
+            # N = len(y)
+            min_value = np.min(y)
+            max_value = np.max(y)
+            mean = np.mean(y)
+            variance = np.var(y, ddof=1)  # Используем ddof=1 для несмещенной оценки дисперсии
+            std_dev = np.sqrt(variance)
+            
+            # Рассчет асимметрии и коэффициента асимметрии
+            mu3 = np.mean((y - mean) ** 3)
+            delta3 = np.power(variance, 1.5)
+            skewness = mu3 / delta3
+            skewness_coeff = skewness / np.power(variance, 1.5)
+            
+            # Рассчет эксцесса и коэффициента эксцесса
+            mu4 = np.mean((y - mean) ** 4)
+            kurtosis = mu4 / np.power(variance, 2)
+            kurtosis_coeff = kurtosis / (variance ** 2) - 3
 
-        stats_df = pd.DataFrame({
-            'Параметр': ['Тип', 'Минимум', 'Максимум', 'Среднее', 'Дисперсия', 'Стандартное отклонение', 'Асимметрия (A)',
-                         'Коэффициент асимметрии', 'Эксцесс (Э)', 'Куртозис', 'Средний квадрат (СК)', 'Среднеквадратическая ошибка'],
-            'Значение': [type] + list(map(lambda x: round(x, 5),
-                [min_value, max_value, mean, variance, std_dev, skewness,
-                skewness_coeff, kurtosis, kurtosis_coeff, squared_mean, rmse]))
-        })
-        return [
-            data,
-            {
+            # Рассчет Среднего квадрата и Среднеквадратической ошибки
+            squared_mean = np.mean(y ** 2)
+            rmse = np.sqrt(variance)
+
+            stats_df = pd.DataFrame({
+                'Параметр': ['Тип', 'Минимум', 'Максимум', 'Среднее', 'Дисперсия', 'Стандартное отклонение', 'Асимметрия (A)',
+                            'Коэффициент асимметрии', 'Эксцесс (Э)', 'Куртозис', 'Средний квадрат (СК)', 'Среднеквадратическая ошибка'],
+                'Значение': [df_dict.get('type')] + list(map(lambda x: round(x, 5),
+                    [min_value, max_value, mean, variance, std_dev, skewness,
+                    skewness_coeff, kurtosis, kurtosis_coeff, squared_mean, rmse]))
+            })
+           
+            result_list.append({
                 'data': stats_df,
                 'type': 'statistics',
                 'view': ['table_statistics'],
-            }
-        ]
+            })
+        return result_list
     
 
     def stationarity(data, N, M) -> list:
@@ -668,9 +670,8 @@ class Model:
             'type': 'edit',
             'name': 'Сдвиг',
             'parameters': {
-                # НАПИСАТЬ ПАРАМЕТР ДЛЯ ВЫБОРА НАБОРА ДАННЫХ ИЗ БЛОКА data
                 'data': {
-                    "title": "Выбор данных",
+                    "title": "Выбор набора данных",
                     "type": "dropdown_function_data",
                     "options": {
                         0: {
@@ -679,14 +680,6 @@ class Model:
                         },
                     },
                     "default_value": 0,
-                },
-                'N': {
-                    "title": "Длина данных N",
-                    "type": "slider",
-                    "min": 100,
-                    "max": 10000,
-                    "step": 10,
-                    "default_value": 1000,
                 },
                 'C': {
                     "title": "Cмещение данных C",
@@ -764,15 +757,15 @@ class Model:
             'name': 'Статистические данные',
             'parameters': {
                 'data': {
-                    "title": "Выбор данных",
-                    "type": "dropdown",
-                    "options": [
-                        {
-                            "key": None,
-                            "text": "Не выбрана",
+                    "title": "Выбор набора данных",
+                    "type": "dropdown_function_data",
+                    "options": {
+                        0: {
+                            "text": "Не выбраны",
+                            'value': [],
                         },
-                    ],
-                    "default_value": None,
+                    },
+                    "default_value": 0,
                 },
             }
         },

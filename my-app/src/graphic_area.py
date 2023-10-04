@@ -29,6 +29,7 @@ class GraphicArea(Row):
         self.app = app
         self.page = page
         self.spacing = 0
+        # self.auto_scroll = True
 
         # Ссылка на выбранную функцию
         self.ref_function_card = Ref[Container]()
@@ -102,6 +103,7 @@ class GraphicArea(Row):
             expand=True,
             border=border.all(colors.BLACK),
             content=Tabs(
+                scrollable=False,
                 ref=self.ref_result_view,
                 animation_duration=200,
                 tabs=[
@@ -194,7 +196,7 @@ class GraphicArea(Row):
             self,
             tab_name: str,
             list_results: List,
-            ref_result_view: Ref[Column],
+            ref_tab_result_view: Ref[Column],
         ) -> Tab:
         '''
         Функциия создания вкладки результатов
@@ -207,14 +209,8 @@ class GraphicArea(Row):
                 content=Column(
                     tight=True,
                     scroll=ScrollMode.AUTO,
+                    ref=ref_tab_result_view,
                     controls=list_results,
-                    ref=ref_result_view,
-                    # controls=[
-                    #     Column(
-                    #         animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
-                    #         controls=list_results
-                    #     )
-                    # ] # ДЛЯ АНММАЦИИ ПОЯВЛЕНИЯ ГРАФИКА
                 ),
             ),
         )
@@ -282,28 +278,26 @@ class GraphicArea(Row):
             # Устанавливаем ссылку на новую выбранную функцию
             self.ref_function_card.current = clicked_function_card
 
+            scroll_view = None
             match clicked_function_card.function_type:
                 case 'data':
                     self.ref_result_view.current.selected_index = 0
-                    self.ref_result_view_data.current.scroll_to(
-                        key=str(clicked_function_card.function_id),
-                        duration=500,
-                        curve=animation.AnimationCurve.FAST_OUT_SLOWIN
-                    )
+                    scroll_view = self.ref_result_view_data.current
                 case 'edit':
                     self.ref_result_view.current.selected_index = 1
-                    self.ref_result_view_edit.current.scroll_to(
-                        key=str(clicked_function_card.function_id),
-                        duration=500,
-                        curve=animation.AnimationCurve.FAST_OUT_SLOWIN
-                    )
+                    scroll_view = self.ref_result_view_edit.current
                 case 'analitic':
                     self.ref_result_view.current.selected_index = 2
-                    self.ref_result_view_analitic.current.scroll_to(
-                        key=str(clicked_function_card.function_id),
-                        duration=500,
-                        curve=animation.AnimationCurve.FAST_OUT_SLOWIN
-                    )
+                    scroll_view = self.ref_result_view_analitic.current
+
+            # ПРОКРУТКА ДО ЭЛЕМЕНТА В СПИСКЕ РЕЗУЛЬТАТОВ НЕ РАБОТЕТ
+            # ПРОКРУТКА СРАБАТЫВАЕТ НА РОДИТЕЛЬСКИЕ ЭЛЕМЕНТЫ И ОКНО ПРОКРУЧИВАЕТСЯ МИМО НУЖНОГО МЕСТА
+            # Блокируется auto_scroll=True, но тогда прокрутка всегда идет до конца
+            # scroll_view.scroll_to(
+            #     key=str(clicked_function_card.function_id),
+            #     duration=1000,
+            #     # curve=animation.AnimationCurve.FAST_OUT_SLOWIN
+            # )
         self.update()
 
 

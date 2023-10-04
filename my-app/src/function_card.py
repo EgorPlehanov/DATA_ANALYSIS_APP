@@ -77,7 +77,7 @@ class FunctionCard(UserControl):
                     controls=[
                         Markdown(
                             extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                            value = f'#### Функция (***id: {self.function_id}***)\n**{self.function.name}** ({", ".join(self.function.parameters_names)})'
+                            value = f'#### Функция (*id:* ***{self.function_id}***)\n**{self.function.name}** ({", ".join(self.function.parameters_names)})'
 
                         ),
                         IconButton(
@@ -166,16 +166,15 @@ class FunctionCard(UserControl):
             )
         )
 
+        self.ref_result_view_LineChartData = Ref[LineChartData]() # НУЖНО НАПИСАТЬ ОБНОВЛЕНИЕ ДАННЫХ ТАБЛИЦЫ
         # Представление результатов функции
         self.ref_result_view = Ref[Container]()
-        self.ref_result_view_LineChartData = Ref[LineChartData]() # НУЖНО НАПИСАТЬ ОБНОВЛЕНИЕ ДАННЫХ ТАБЛИЦЫ
-
         self.result_view = Container(
             ref=self.ref_result_view,
             key=str(self.function_id),
             data=self,
-            bgcolor=colors.BLACK26,
             border_radius=10,
+            bgcolor=colors.BLACK26,
             padding=padding.only(left=5, top=10, right=20, bottom=10),
             content=self._get_result_view_list()
         )
@@ -202,6 +201,7 @@ class FunctionCard(UserControl):
             self.card_view.bgcolor = colors.BLACK26
             self.parameters_view.visible = True
             self.result_view.border = border.all(color=colors.BLUE)
+            self.result_view.animate
         self.selected = not self.selected
         self.update()
     
@@ -246,25 +246,21 @@ class FunctionCard(UserControl):
                         )
                     ]
                 case 'dropdown_function_data':
-                    options = param.get('options', {0: {'text': '', 'value': []}})
-                    match self.function.type:
-                        case 'edit':
-                            options.update({
-                                idx + 1: {
-                                    'text': f'{function_card.function_name} (id: {function_card.function_id}, type: {function_card.function_type})',
-                                    'value': function_card.function.result,
-                                }
-                                for idx, function_card in enumerate(self.graphic_area.list_functions_data)
-                            })
-                        case 'analitic':
-                            options.update({
-                                idx + 1: {
-                                    'text': f'{function_card.function_name} ({function_card.function_type})',
-                                    'value': function_card.function.result,
-                                }
-                                for idx, function_card in enumerate(self.graphic_area.list_functions_edit)
-                            })
+                    function_card_list = []
+                    if self.function.type in ['edit', 'analitic']:
+                        function_card_list.extend(self.graphic_area.list_functions_data)
+                    if self.function.type == 'analitic':
+                        function_card_list.extend(self.graphic_area.list_functions_edit)
 
+                    options = param.get('options', {0: {'text': '', 'value': []}})
+                    options.update({
+                        idx + 1: {
+                            'text': f'{function_card.function_name} (id: {function_card.function_id}, type: {function_card.function_type})',
+                            'value': function_card.function.result,
+                        }
+                        for idx, function_card in enumerate(function_card_list)
+                    })
+                    
                     param_editor = [
                         Dropdown(
                             dense=True,
@@ -515,38 +511,25 @@ class FunctionCard(UserControl):
             return result_view
         
         colors_list = ['green', 'blue', 'red', 'yellow', 'purple',
-                       'orange', 'pink', 'brown', 'cyan', 'magenta']
+                       'orange', 'pink', 'brown', 'cyan', 'magenta',
+                       'teal', 'gray', 'black', 'lime', 'olive',
+                       'violet']
 
         graphs_cnt = len(dataframe_list)
         grid = []
         row = []
         for idx in range(1, graphs_cnt + 1):
-            element_view = []
-            view_list = dataframe_list[idx - 1].get('view')
-            if 'chart' in view_list:
-                element_view.append(
-                    Row(controls=[self._get_function_result_graphic(dataframe_list[idx - 1], color=colors_list[idx - 1])]),
-                )
-            if 'table_data' in view_list:
-                element_view.append(
-                    self._get_datatable_data(dataframe_list[idx - 1].get('data')),
-                )
-            if 'table_statistics' in view_list:
-                element_view.append(
-                    self._get_datatable_statistics(dataframe_list[idx - 1].get('data')),
-                )
-            row.append(Column(expand=True, controls=element_view))
+            row.append(self._get_element_view(dataframe_list[idx - 1], colors_list[(idx - 1) % len(colors_list)]))
 
             if (
                 graphs_cnt <= 3 or len(row) == 3 or idx == graphs_cnt
                 or (graphs_cnt % 3 == 1 and graphs_cnt - idx < 3 and len(row) == 2)
             ):
-                grid.append(Row(controls=row))
+                grid.append(Row(controls=row, vertical_alignment=CrossAxisAlignment.START))
                 row = []
         
         result_view = Column(
-            controls=
-            [
+            controls=[
                 Row(
                     alignment=MainAxisAlignment.CENTER,
                     controls=[
@@ -558,6 +541,21 @@ class FunctionCard(UserControl):
         )
         return result_view
     
+    def _get_element_view(self, dataframe, color='green') -> Container:
+        if not dataframe:
+            return None
+        
+        element_controls = []
+        view_list = dataframe.get('view')
+        if 'chart' in view_list:
+            element_controls.append(self._get_function_result_graphic(dataframe, color=color))
+        if 'table_data' in view_list:
+            element_controls.append(self._get_datatable_data(dataframe.get('data')))
+        if 'table_statistics' in view_list:
+            element_controls.append(self._get_datatable_statistics(dataframe.get('data')))
+
+        return Column(expand=True, controls=element_controls)
+
 
     def get_result_view(self) -> Container:
         return self.result_view
@@ -624,7 +622,7 @@ class FunctionCard(UserControl):
             expand=True,
         )
 
-        return chart
+        return Row(controls=[chart])
 
 
     def _get_datatable_data(self, dataframe) -> Row:
@@ -702,6 +700,7 @@ class FunctionCard(UserControl):
         )
         return datatable
     
+
     def _get_datatable_statistics(self, dataframe) -> Container:
         columns = [DataColumn(Text(col)) for col in dataframe.columns]
         rows = []

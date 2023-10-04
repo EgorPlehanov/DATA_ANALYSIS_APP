@@ -1,3 +1,4 @@
+import itertools
 from typing import Any
 import pandas as pd
 import flet as ft
@@ -34,13 +35,18 @@ from flet import (
     DataRow,
     DataCell,
     ScrollMode,
-    BorderSide
+    BorderSide,
+    animation,
+    AnimationCurve,
 )
 from function import Function
 
 
 
 class FunctionCard(UserControl):
+    id_counter = itertools.count()
+
+        
     def __init__(self, graphic_area, app, page, function_name, function_type, on_change_selected, on_click_delete):
         super().__init__()
         self.app = app
@@ -48,6 +54,7 @@ class FunctionCard(UserControl):
         self.graphic_area = graphic_area
         self.function_name = function_name
         self.function_type = function_type
+        self.function_id = next(FunctionCard.id_counter)
         self.selected = False
 
         # Функции обработчики нажатий на кнопки карточки функции 
@@ -60,8 +67,8 @@ class FunctionCard(UserControl):
         # Содержимое карточки функции
         self.ref_card_parameters_text = Ref[Markdown]()
         self.ref_card_result = Ref[Column]()
-        self.ref_card_result_show_button = Ref[IconButton]()
         self.ref_card_result_data = Ref[Markdown]()
+        self.ref_card_result_show_button = Ref[IconButton]()
         self.card_content = Column(
             expand=True,
             controls=[
@@ -70,7 +77,8 @@ class FunctionCard(UserControl):
                     controls=[
                         Markdown(
                             extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                            value='#### Функция:\n**' + self.function.name + '** (' + ', '.join(self.function.parameters_names) + ')',
+                            value = f'#### Функция (***id: {self.function_id}***)\n**{self.function.name}** ({", ".join(self.function.parameters_names)})'
+
                         ),
                         IconButton(
                             icon=icons.DELETE,
@@ -80,6 +88,7 @@ class FunctionCard(UserControl):
                     ]
                 ),
                 Markdown(
+                    animate_size=200,
                     ref=self.ref_card_parameters_text,
                     extension_set=MarkdownExtensionSet.GITHUB_WEB,
                     value=self._get_card_parameters_text()
@@ -101,34 +110,37 @@ class FunctionCard(UserControl):
                         ),
                     ]
                 ),
-                Column(
-                    ref=self.ref_card_result,
-                    visible=False,
-                    controls=[
-                        Markdown(
-                            ref=self.ref_card_result_data,
-                            extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                            value=self._get_card_parameters_result()
-                        ),
-                        Row(
-                            alignment=MainAxisAlignment.END,
-                            controls=[
-                                IconButton(
-                                    content=Row(
-                                        controls=[
-                                            Text(value="Скрыть результат"),
-                                            Icon(name='KEYBOARD_ARROW_UP')
-                                        ]
+                Container(
+                    animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
+                    content=Column(
+                        ref=self.ref_card_result,
+                        visible=False,
+                        controls=[
+                            Markdown(
+                                ref=self.ref_card_result_data,
+                                extension_set=MarkdownExtensionSet.GITHUB_WEB,
+                                value=self._get_card_parameters_result()
+                            ),
+                            Row(
+                                alignment=MainAxisAlignment.END,
+                                controls=[
+                                    IconButton(
+                                        content=Row(
+                                            controls=[
+                                                Text(value="Скрыть результат"),
+                                                Icon(name='KEYBOARD_ARROW_UP')
+                                            ]
+                                        ),
+                                        data={
+                                            'control': self.ref_card_result,
+                                            'button': self.ref_card_result_show_button,
+                                        },
+                                        on_click=self._change_function_result_visible
                                     ),
-                                    data={
-                                        'control': self.ref_card_result,
-                                        'button': self.ref_card_result_show_button,
-                                    },
-                                    on_click=self._change_function_result_visible
-                                ),
-                            ]
-                        )
-                    ]
+                                ]
+                            )
+                        ]
+                    )
                 )
             ]
         )
@@ -148,6 +160,7 @@ class FunctionCard(UserControl):
         self.parameters_view = Container(
             visible=False,
             data=self,
+            padding=10,
             content=Column(
                 controls=self._get_parameters_view_list()
             )
@@ -155,10 +168,11 @@ class FunctionCard(UserControl):
 
         # Представление результатов функции
         self.ref_result_view = Ref[Container]()
-        self.ref_result_view_LineChartData = Ref[LineChartData]()
+        self.ref_result_view_LineChartData = Ref[LineChartData]() # НУЖНО НАПИСАТЬ ОБНОВЛЕНИЕ ДАННЫХ ТАБЛИЦЫ
 
         self.result_view = Container(
             ref=self.ref_result_view,
+            key=str(self.function_id),
             data=self,
             bgcolor=colors.BLACK26,
             border_radius=10,
@@ -231,6 +245,42 @@ class FunctionCard(UserControl):
                             on_change=self._on_dropdown_change
                         )
                     ]
+                case 'dropdown_function_data':
+                    options = param.get('options', {0: {'text': '', 'value': []}})
+                    match self.function.type:
+                        case 'edit':
+                            options.update({
+                                idx + 1: {
+                                    'text': f'{function_card.function_name} (id: {function_card.function_id}, type: {function_card.function_type})',
+                                    'value': function_card.function.result,
+                                }
+                                for idx, function_card in enumerate(self.graphic_area.list_functions_data)
+                            })
+                        case 'analitic':
+                            options.update({
+                                idx + 1: {
+                                    'text': f'{function_card.function_name} ({function_card.function_type})',
+                                    'value': function_card.function.result,
+                                }
+                                for idx, function_card in enumerate(self.graphic_area.list_functions_edit)
+                            })
+
+                    param_editor = [
+                        Dropdown(
+                            dense=True,
+                            label=param.get('title'),
+                            options=[
+                                dropdown.Option(key=key, text=option.get('text'))
+                                for key, option in options.items()
+                            ],
+                            value=current_parameters[param_name],
+                            data={
+                                'param_name': param_name,
+                                'data': options
+                            },
+                            on_change=self._on_dropdown_function_change
+                        )
+                    ]
                 case "slider":                    
                     ref_slider_text = Ref[Text]()
                     slider_divisions = int((param.get('max') - param.get('min', 0)) / param.get('step'))
@@ -252,7 +302,7 @@ class FunctionCard(UserControl):
                                         'param_title': param.get("title"),
                                         'param_name': param_name
                                     },
-                                    on_change=self._change_slider_title,
+                                    on_change_end=self._change_slider_title,
                                 )
                             ]
                         )
@@ -334,17 +384,34 @@ class FunctionCard(UserControl):
         '''
         Обновляет значение параметра в экземпляре класса Function и карточке функции
         '''
-        dropdown_param_name = e.control.data.get('param_name')
-        dropdown_param_value = e.control.value
+        param_name = e.control.data.get('param_name')
+        param_value = e.control.value
         
-        self.function.set_parameter_value(dropdown_param_name, dropdown_param_value)
+        self.function.set_parameter_value(param_name, param_value)
+
+        self.update_function_card()
+        self.graphic_area.update()
+
+
+    def _on_dropdown_function_change(self, e) -> None:
+        '''
+        Обновляет значение параметра в экземпляре класса Function и карточке функции
+        '''
+        dropdown_value = int(e.control.value)
+        param_name = e.control.data.get('param_name')
+        param_value = e.control.data.get('data').get(dropdown_value).get('value')
+
+        self.function.set_parameter_value(param_name, param_value)
 
         self.update_function_card()
         self.graphic_area.update()
 
     
     def _on_checkbox_change(self, e) -> None:
-
+        '''
+        Обновляет значение параметр в экземпляре класса Function
+        Изменяет список выбранных чекбоксов
+        '''
         checkbox_key = e.control.data.get('key')
         checkbox_value = e.control.value
         checkbox_param_name = e.control.data.get('param_name')
@@ -416,6 +483,7 @@ class FunctionCard(UserControl):
         Обновляет текст параметров в карточки функции
         '''
         # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
+        self.ref_result_view.current.content = self._get_result_view_list()
         # dataframe = self.function.result
         # data_points_list = []
         # for df in dataframe:
@@ -427,7 +495,6 @@ class FunctionCard(UserControl):
         #     )
         # self.ref_result_view_LineChartData.current.data_points = data_points
         
-        self.ref_result_view.current.content = self._get_result_view_list()
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
         self.ref_card_result_data.current.value = self._get_card_parameters_result()
         self.update()
@@ -645,6 +712,7 @@ class FunctionCard(UserControl):
 
         ref_table = Ref[DataTable]()
         datatable = Container(
+            animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
             content=Row(
                 vertical_alignment=CrossAxisAlignment.START,
                 spacing=0,
@@ -655,7 +723,7 @@ class FunctionCard(UserControl):
                             'control': ref_table,
                             'name': 'Показать таблицу статистических параметров',
                         },
-                        on_click=self.test
+                        on_click=self._change_control_visible
                     ),
                     DataTable(
                         columns=columns,
@@ -672,7 +740,7 @@ class FunctionCard(UserControl):
         
         return datatable
     
-    def test(self, e) -> None:
+    def _change_control_visible(self, e) -> None:
         data = e.control.data
         control = data.get('control').current
         button = e.control

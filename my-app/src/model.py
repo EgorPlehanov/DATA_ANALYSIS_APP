@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
+from pandas import (
+    DataFrame
+)
 import scipy.stats as stats
+from statsmodels.tsa.stattools import adfuller
 import time
 import random
 
@@ -29,7 +33,7 @@ class Model:
                 data_functions.append({'key': key, 'name': info.get('name', key)})
         return data_functions
     
-    def round_and_clip_dataframe(df, max_value: int = 1000000000, decimal_places: int = 4) -> pd.DataFrame:
+    def round_and_clip_dataframe(df: DataFrame, max_value: int = 1000000000, decimal_places: int = 4) -> DataFrame:
     # Округление значений в датафрейме
         df = df.round(decimal_places)
 
@@ -148,7 +152,7 @@ class Model:
         return [{
             'data': noised_data,
             'type': 'noise',
-            'view': ['chart', 'table_data'],
+            'view': ['chart']#, 'table_data'],
         }]
 
 
@@ -181,26 +185,35 @@ class Model:
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
-        data = Model.noise(None, N, 100, 1)[0]['data']['y']  # ДЛЯ ТЕСТА
+        if not data:
+            return []
+        # data = Model.noise(None, N, 100, 1)[0]  # ДЛЯ ТЕСТА
 
-        N, N1, N2 = int(N), int(N1), int(N2)
-
+        N1, N2 = int(N1), int(N2)
         if N1 > N2:
             N1, N2 = N2, N1
-        error_message = ''
-        if N1 < 0 or N2 >= N:
-            error_message = f' - некорректные значения N1 и N2: 0 <= {N1} (N1), {N2} (N2) <= {N} (N)'
-            # return []
 
-        shifted_data = data.copy()
-        shifted_data[N1:N2+1] += C
-        shifted_df = pd.DataFrame({'x': np.arange(N), 'y': shifted_data})
-        shifted_df = Model.round_and_clip_dataframe(shifted_df)
-        return [{
-            'data': shifted_df,
-            'type': 'shift' + error_message,
-            'view': ['chart']#, 'table_data'],
-        }]
+        result_list = []
+        for df_dict in data:
+            df = df_dict.get('data')
+            N = len(df)
+
+            error_message = ''
+            if N1 < 0 or N2 >= N:
+                error_message = f' - некорректные значения N1 и N2: 0 <= {N1} (N1), {N2} (N2) <= {N} (N)'
+                # return []
+
+            shifted_df = df.get('y').copy()
+            shifted_df[N1:N2+1] += C
+            shifted_df = pd.DataFrame({'x': df.get('x').copy(), 'y': shifted_df})
+            shifted_df = Model.round_and_clip_dataframe(shifted_df)
+
+            result_list.append({
+                'data': shifted_df,
+                'type': f'shift ({df_dict.get("type")}) {error_message}',
+                'view': ['chart']#, 'table_data'],
+            })
+        return result_list
 
 
     def spikes(N, M, R, Rs) -> list:
@@ -248,8 +261,8 @@ class Model:
 
 
         type = data.get('type')
-        dataframe = data.get('data')
-        y = dataframe['y'].values
+        df = data.get('data')
+        y = df['y'].values
 
         N = len(y)
         min_value = np.min(y)
@@ -266,7 +279,7 @@ class Model:
         
         # Рассчет эксцесса и коэффициента эксцесса
         mu4 = np.mean((y - mean) ** 4)
-        kurtosis = mu4 / np.power(variance, 2) - 3
+        kurtosis = mu4 / np.power(variance, 2)
         kurtosis_coeff = kurtosis / (variance ** 2) - 3
 
         # Рассчет Среднего квадрата и Среднеквадратической ошибки
@@ -280,13 +293,74 @@ class Model:
                 [min_value, max_value, mean, variance, std_dev, skewness,
                 skewness_coeff, kurtosis, kurtosis_coeff, squared_mean, rmse]))
         })
-        return [{
-            'data': stats_df,
-            'type': 'statistics',
-            'view': ['table_statistics'],
-        }]
+        return [
+            data,
+            {
+                'data': stats_df,
+                'type': 'statistics',
+                'view': ['table_statistics'],
+            }
+        ]
     
 
+    def stationarity(data, N, M) -> list:
+        """
+        Оценивает стационарность данных.
+
+        :param data: Данные для анализа (представленные в виде DataFrame)
+        :param N: Длина данных
+        :param M: Количество интервалов
+        :return: True, если данные стационарны, иначе False
+        """
+        data = Model.noise(None, N, 100, 1)[0]  # ДЛЯ ТЕСТА
+        df = data.get('data')
+        # df = pd.DataFrame({
+        #     'x': [i for i in range(N)],
+        #     'y': [5 for _ in range(N)]
+        # })
+        # data['data'] = df
+
+        N = int(N)
+        M = int(M)
+
+        error_message = ''
+        if M < 2:
+            error_message = f'M should be at least 2.'
+
+        y = df['y'].values
+        
+        intervals = np.array_split(y, M)
+        means = np.array([np.mean(interval) for interval in intervals])
+        std_deviations = np.array([np.std(interval) for interval in intervals])
+
+        is_stationarity = True
+        for i in range(M):
+            if not is_stationarity:
+                break
+
+            for j in range(i + 1, M):
+                delta_mean = abs(means[i] - means[j])
+                delta_std_dev = abs(std_deviations[i] - std_deviations[j])
+
+                if delta_mean >= 0.05 * np.ptp(y) or delta_std_dev >= 0.05 * np.ptp(y):
+                    is_stationarity = False
+                    break
+        res = adfuller(y)
+        # print(res)
+        is_stationarity_2 = res[1] < 0.05
+        stats_df = pd.DataFrame({
+            'Параметр': ['Стационарность', 'Стационарность'],
+            'Значение': [str(is_stationarity), str(is_stationarity_2)]
+        })
+        # 'Процесс ' + ('' if is_stationarity else 'НЕ ') + 'стационарный'
+        return [
+            data,
+            {
+                'data': stats_df,
+                'type': 'statistics' + error_message,
+                'view': ['table_statistics'],
+            }
+        ]
 
     
     functions_info = {
@@ -597,14 +671,14 @@ class Model:
                 # НАПИСАТЬ ПАРАМЕТР ДЛЯ ВЫБОРА НАБОРА ДАННЫХ ИЗ БЛОКА data
                 'data': {
                     "title": "Выбор данных",
-                    "type": "dropdown",
-                    "options": [
-                        {
-                            "key": None,
-                            "text": "Не выбрана",
+                    "type": "dropdown_function_data",
+                    "options": {
+                        0: {
+                            "text": "Не выбраны",
+                            'value': [],
                         },
-                    ],
-                    "default_value": None,
+                    },
+                    "default_value": 0,
                 },
                 'N': {
                     "title": "Длина данных N",
@@ -700,6 +774,41 @@ class Model:
                     ],
                     "default_value": None,
                 },
+            }
+        },
+
+        'stationarity': {
+            'function': stationarity,
+            'type': 'analitic',
+            'name': 'Стационарность',
+            'parameters': {
+                'data': {
+                    "title": "Выбор данных",
+                    "type": "dropdown",
+                    "options": [
+                        {
+                            "key": None,
+                            "text": "Не выбрана",
+                        },
+                    ],
+                    "default_value": None,
+                },
+                'N': {
+                    "title": "Длина данных N",
+                    "type": "slider",
+                    "min": 100,
+                    "max": 10000,
+                    "step": 100,
+                    "default_value": 1000,
+                },
+                'M': {
+                    "title": "Количество интервалов M",
+                    "type": "slider",
+                    "min": 100,
+                    "max": 5000,
+                    "step": 100,
+                    "default_value": 1000,
+                }
             }
         }
     }

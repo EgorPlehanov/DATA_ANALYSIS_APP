@@ -6,7 +6,6 @@ from flet import (
     border,
     Column,
     ScrollMode,
-    Text,
     Dropdown,
     dropdown,
     IconButton,
@@ -16,6 +15,8 @@ from flet import (
     Page,
     alignment,
     Markdown,
+    animation,
+    AnimationCurve,
 )
 from function_card import FunctionCard
 import flet as ft
@@ -79,10 +80,9 @@ class GraphicArea(Row):
 
         # Меню работы с параметрами
         self.parameters_menu = Container(
-            padding=5,
             alignment=alignment.top_center,
             bgcolor=colors.BLACK12,
-            border=border.all(colors.BLACK),
+            animate_size=100,
             content=Column(
                 tight=True,
                 scroll=ScrollMode.AUTO,
@@ -90,23 +90,35 @@ class GraphicArea(Row):
             )
         )
 
+        # Ссыкла на виджет вкладок результатов
+        self.ref_result_view = Ref[Tabs]()
+
+        self.ref_result_view_data = Ref[Column]()
+        self.ref_result_view_edit = Ref[Column]()
+        self.ref_result_view_analitic = Ref[Column]()
+
         # Область вывода результатов с вкладками (данные/обработка/анализ)
         self.results_view = Container(
             expand=True,
             border=border.all(colors.BLACK),
             content=Tabs(
+                ref=self.ref_result_view,
+                animation_duration=200,
                 tabs=[
                     self._get_result_view_tab(
                         'Данные',
                         self.list_results_data,
+                        self.ref_result_view_data,
                     ),
                     self._get_result_view_tab(
                         'Обработка',
                         self.list_results_edit,
+                        self.ref_result_view_edit,
                     ),
                     self._get_result_view_tab(
                         'Анализ',
                         self.list_results_analitic,
+                        self.ref_result_view_analitic,
                     ),
                 ]
             ),
@@ -143,6 +155,7 @@ class GraphicArea(Row):
         # Блок из меню работы с функциями
         function_menu = Container(
             bgcolor=colors.BLUE_GREY_900,
+            border_radius=10,
             padding=5,
             content=Column(
                 controls=[
@@ -168,6 +181,7 @@ class GraphicArea(Row):
                         ]
                     ),
                     Column(
+                        animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
                         controls=list_functions
                     )
                 ]
@@ -179,7 +193,8 @@ class GraphicArea(Row):
     def _get_result_view_tab(
             self,
             tab_name: str,
-            list_results: List
+            list_results: List,
+            ref_result_view: Ref[Column],
         ) -> Tab:
         '''
         Функциия создания вкладки результатов
@@ -192,7 +207,14 @@ class GraphicArea(Row):
                 content=Column(
                     tight=True,
                     scroll=ScrollMode.AUTO,
-                    controls=list_results
+                    controls=list_results,
+                    ref=ref_result_view,
+                    # controls=[
+                    #     Column(
+                    #         animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
+                    #         controls=list_results
+                    #     )
+                    # ] # ДЛЯ АНММАЦИИ ПОЯВЛЕНИЯ ГРАФИКА
                 ),
             ),
         )
@@ -260,6 +282,28 @@ class GraphicArea(Row):
             # Устанавливаем ссылку на новую выбранную функцию
             self.ref_function_card.current = clicked_function_card
 
+            match clicked_function_card.function_type:
+                case 'data':
+                    self.ref_result_view.current.selected_index = 0
+                    self.ref_result_view_data.current.scroll_to(
+                        key=str(clicked_function_card.function_id),
+                        duration=500,
+                        curve=animation.AnimationCurve.FAST_OUT_SLOWIN
+                    )
+                case 'edit':
+                    self.ref_result_view.current.selected_index = 1
+                    self.ref_result_view_edit.current.scroll_to(
+                        key=str(clicked_function_card.function_id),
+                        duration=500,
+                        curve=animation.AnimationCurve.FAST_OUT_SLOWIN
+                    )
+                case 'analitic':
+                    self.ref_result_view.current.selected_index = 2
+                    self.ref_result_view_analitic.current.scroll_to(
+                        key=str(clicked_function_card.function_id),
+                        duration=500,
+                        curve=animation.AnimationCurve.FAST_OUT_SLOWIN
+                    )
         self.update()
 
 

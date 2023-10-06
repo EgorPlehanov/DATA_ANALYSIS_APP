@@ -333,5 +333,8 @@ class GraphicArea(Row):
             case 'analitic':
                 self.list_functions_analitic.remove(function_to_remove)
                 self.list_results_analitic.remove(reslut_view_to_remove)
+        print('self.list_functions_edit', self.list_functions_edit)
+        print('self.list_results_edit', self.list_results_edit)
+        print('self.list_function_parameters', self.list_function_parameters)
         
         self.update()

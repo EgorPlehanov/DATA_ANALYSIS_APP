@@ -550,9 +550,17 @@ class FunctionCard(UserControl):
         if 'chart' in view_list:
             element_controls.append(self._get_function_result_graphic(dataframe, color=color))
         if 'table_data' in view_list:
-            element_controls.append(self._get_datatable_data(dataframe.get('data')))
+            element_controls.append(self._get_datatable_data(dataframe))
         if 'table_statistics' in view_list:
-            element_controls.append(self._get_datatable_statistics(dataframe.get('data')))
+            element_controls.append(self._get_datatable_statistics(dataframe))
+
+        extra_data = dataframe.get('extra_data')
+        if extra_data:
+            extra_data_view = self._get_dropdown_conteiner_for_control(
+                control=self._get_element_view(extra_data),
+                button_name='Дополнительные данные', 
+            )
+            element_controls.append(extra_data_view)
 
         return Column(expand=True, controls=element_controls)
 
@@ -563,7 +571,7 @@ class FunctionCard(UserControl):
 
     def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False) -> LineChart:
         df = dataframe.get('data')
-        graphic_title = dataframe.get('type', 'Нет данных')
+        graphic_title = dataframe.get('type')
 
         data_series = []
 
@@ -621,22 +629,28 @@ class FunctionCard(UserControl):
             tooltip_bgcolor=colors.with_opacity(0.8, colors.BLACK38),
             expand=True,
         )
-
-        return Row(controls=[chart])
+        chart_view = self._get_dropdown_conteiner_for_control(
+            control=chart,
+            button_name='Показать график' + (' ***' + graphic_title.strip() + '***' if graphic_title.strip() else '')
+        )
+        return chart_view
+        # return Row(controls=[chart])
 
 
     def _get_datatable_data(self, dataframe) -> Row:
         '''
-        
+        Сзодает горизонтальную таблицу данных с прокруткой значений по горизонтали
         '''
-        transposed_dataframe = dataframe.transpose()
+        df = dataframe.get('data')
+        df_name = dataframe.get('type')
+        transposed_df = df.transpose()
 
-        # Создайте таблицу с заголовками (индексами)
+        # Создайте таблицу с заголовками (первый столбец)
         header_table = DataTable(
             columns=[DataColumn(Text(""))],
             rows=[
                 DataRow([DataCell(Text(str(idx)))])
-                for idx in transposed_dataframe.index
+                for idx in transposed_df.index
             ],
             border=border.only(right=BorderSide(1, color=colors.with_opacity(0.2, colors.ON_SURFACE))),
             horizontal_margin=10,
@@ -644,20 +658,20 @@ class FunctionCard(UserControl):
             data_row_max_height=40,
         )
 
-        # Создайте таблицу с данными
+        # Создайте таблицу с данными (остальные столбцы)
         data_table = DataTable(
             columns=[
                 DataColumn(Text(str(col)), numeric=True)
-                for col in transposed_dataframe.columns
+                for col in transposed_df.columns
             ],
             rows=[
                 DataRow(
                     cells=[
                         DataCell(content=Text(str(value)) if not pd.isna(value) else '')
-                        for value in transposed_dataframe.loc[idx]
+                        for value in transposed_df.loc[idx]
                     ]
                 )
-                for idx in transposed_dataframe.index
+                for idx in transposed_df.index
             ],
             column_spacing=15,
             heading_row_height=40,
@@ -665,80 +679,92 @@ class FunctionCard(UserControl):
             vertical_lines=BorderSide(1, color=colors.with_opacity(0.05, colors.ON_SURFACE))
         )
 
-        ref_table = Ref[Container]()
-        datatable = Row(
-            vertical_alignment=CrossAxisAlignment.START,
-            spacing=0,
-            controls=[
-                IconButton(
-                    icon=icons.KEYBOARD_ARROW_UP,
-                    data={
-                        'control': ref_table,
-                        'name': 'Показать таблицу данных',
-                    },
-                    on_click=self.test
-                ),
-                Container(
-                    ref=ref_table,
-                    expand=True,
-                    content=Row(
-                        spacing=0,
-                        controls=[
-                            header_table,
-                            Row(
-                                expand=True,
-                                tight=True,
-                                scroll=ScrollMode.ADAPTIVE,
-                                controls=[data_table]
-                            )
-                        ]
-                    ),
-                    border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
-                    border_radius=10,
-                )
-            ]
+        datatable = Container(
+            expand=True,
+            content=Row(
+                spacing=0,
+                controls=[
+                    header_table,
+                    Row(
+                        expand=True,
+                        tight=True,
+                        scroll=ScrollMode.ADAPTIVE,
+                        controls=[data_table]
+                    )
+                ]
+            ),
+            border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+            border_radius=10,
         )
-        return datatable
+
+        datatable_viwe = self._get_dropdown_conteiner_for_control(
+            control=datatable,
+            button_name='Показать таблицу данных' + (' ***' + df_name.strip() + '***' if df_name.strip() else '')
+        )
+        return datatable_viwe
     
 
     def _get_datatable_statistics(self, dataframe) -> Container:
-        columns = [DataColumn(Text(col)) for col in dataframe.columns]
+        '''
+        Сзодает вертикальную таблицу для вывода данных
+        '''
+        df = dataframe.get('data')
+        df_name = dataframe.get('type')
+        columns = [DataColumn(Text(col)) for col in df.columns]
         rows = []
 
-        for _, row in dataframe.iterrows():
+        for _, row in df.iterrows():
             cells = [DataCell(Text(str(value))) for value in row]
             rows.append(DataRow(cells=cells))
 
-        ref_table = Ref[DataTable]()
-        datatable = Container(
-            animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
+        datatable = DataTable(
+            columns=columns,
+            rows=rows,
+            border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+            vertical_lines=BorderSide(1, color=colors.with_opacity(0.05, colors.ON_SURFACE)),
+            border_radius=10,
+            expand=True,
+        )
+
+        datatable_viwe = self._get_dropdown_conteiner_for_control(
+            control=datatable,
+            button_name='Показать таблицу статистических параметров' + (' ***' + df_name.strip() + '***' if df_name.strip() else '')
+        )
+        return datatable_viwe
+    
+
+    def _get_dropdown_conteiner_for_control(self, control, button_name='Показать') -> Container:
+        '''
+        Создает контейнер с кнопкой для скрытия/открытия переданного виджета
+        '''
+        ref_control = Ref[Container]()
+
+        dropdown_conteiner = Container(
             content=Row(
-                vertical_alignment=CrossAxisAlignment.START,
-                spacing=0,
                 controls=[
                     IconButton(
                         icon=icons.KEYBOARD_ARROW_UP,
                         data={
-                            'control': ref_table,
-                            'name': 'Показать таблицу статистических параметров',
+                            'control': ref_control,
+                            'name': button_name,
                         },
                         on_click=self._change_control_visible
                     ),
-                    DataTable(
-                        columns=columns,
-                        rows=rows,
-                        ref=ref_table,
-                        border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
-                        vertical_lines=BorderSide(1, color=colors.with_opacity(0.05, colors.ON_SURFACE)),
-                        border_radius=10,
+                    Container(
+                        ref=ref_control,
                         expand=True,
+                        content=control
                     )
-                ]
-            )
+                ],
+                vertical_alignment=CrossAxisAlignment.START,
+                spacing=0,
+            ),
+            animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
+            border_radius=10,
         )
-        
-        return datatable
-    
+        return dropdown_conteiner
+
+
     def _change_control_visible(self, e) -> None:
         data = e.control.data
         control = data.get('control').current
@@ -749,13 +775,23 @@ class FunctionCard(UserControl):
 
         if control.visible:
             button.icon = icons.KEYBOARD_ARROW_UP
+            button.expand = False
             button.content = None
         else:
             button.icon = None
+            button.expand = True
             button.content = Row(
                 controls=[
                     Icon(name='KEYBOARD_ARROW_DOWN'),
-                    Text(value=button_name),
+                    Row(
+                        expand=True,
+                        wrap=True,
+                        controls=[
+                            Markdown(value=button_name),
+                            # Text(value=button_name, max_lines=3),
+                        ]
+                    )
                 ]
             )
+            
         self.graphic_area.update()

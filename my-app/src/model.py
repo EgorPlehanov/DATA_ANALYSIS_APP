@@ -184,7 +184,6 @@ class Model:
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
-        print(data)
         if not data:
             return []
 
@@ -193,7 +192,7 @@ class Model:
             N1, N2 = N2, N1
 
         result_list = []
-        result_list.extend(data)
+        # result_list.extend(data)
 
         for df_dict in data:
             df = df_dict.get('data')
@@ -203,6 +202,10 @@ class Model:
             if N1 < 0 or N2 >= N:
                 error_message = f' - некорректные значения N1 и N2: 0 <= {N1} (N1), {N2} (N2) <= {N} (N)'
 
+            if N1 > N and N2 > N:
+                error_message = f' - некорректные значения N1 и N2: {N1} (N1), {N2} (N2) > {N} (N)'
+                return [] 
+
             shifted_df = df.get('y').copy()
             shifted_df[N1:N2+1] += C
             shifted_df = pd.DataFrame({'x': df.get('x').copy(), 'y': shifted_df})
@@ -210,10 +213,10 @@ class Model:
 
             result_list.append({
                 'data': shifted_df,
-                'type': f'shift ({df_dict.get("type")}) {error_message}',
-                'view': ['chart']#, 'table_data'],
+                'type': f'shift ({df_dict.get("type")}){error_message}',
+                'view': ['chart'], #'table_data'],
+                'extra_data': df_dict
             })
-        print(result_list)
         return result_list
 
 
@@ -243,7 +246,7 @@ class Model:
         return [{
             'data': spikes_df,
             'type': 'spikes' + error_message,
-            'view': ['chart']#, 'table_data'],
+            'view': ['chart', 'table_data'],
         }]
 
     # ========== ANALITIC FUNCTIONS ==========
@@ -261,7 +264,7 @@ class Model:
         # data = Model.noise(None, 1000, 100, 1)
 
         result_list = []
-        result_list.extend(data)
+        # result_list.extend(data)
 
         for df_dict in data:
             df = df_dict.get('data')
@@ -299,8 +302,9 @@ class Model:
            
             result_list.append({
                 'data': stats_df,
-                'type': 'statistics',
+                'type': f'statistics ({df_dict.get("type")})',
                 'view': ['table_statistics'],
+                'extra_data': df_dict
             })
         return result_list
     
@@ -327,7 +331,7 @@ class Model:
 
         error_message = ''
         if M < 2:
-            error_message = f'M should be at least 2.'
+            error_message = f' - некорректное кол-во интервалов: M должен быть больше 2'
 
         y = df['y'].values
         

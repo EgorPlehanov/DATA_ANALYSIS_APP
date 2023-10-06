@@ -38,6 +38,7 @@ from flet import (
     BorderSide,
     animation,
     AnimationCurve,
+    margin,
 )
 from function import Function
 
@@ -168,31 +169,29 @@ class FunctionCard(UserControl):
             )
         )
 
-        self.ref_result_view_LineChartData = Ref[LineChartData]() # НУЖНО НАПИСАТЬ ОБНОВЛЕНИЕ ДАННЫХ ТАБЛИЦЫ
         # Представление результатов функции
         self.ref_result_view = Ref[Container]()
         self.result_view = Container(
+            content=self._get_result_view_list(),
             ref=self.ref_result_view,
-            key=str(self.function_id),
             data=self,
             border_radius=10,
             bgcolor=colors.BLACK26,
             padding=padding.only(left=5, top=10, right=20, bottom=10),
-            content=self._get_result_view_list()
         )
         
 
     def build(self) -> Container:
         '''
         Возвращает представление карточки функции
-        
-        Returns:
-            Container: Представление карточки функции
         '''
         return self.card_view
 
 
     def change_selected(self, e) -> None:
+        '''
+        Изменяет свойства карточки в зависимости от того выбрана она или нет
+        '''
         if self.selected:
             self.card_view.border = border.all(color=colors.BLACK)
             self.card_view.bgcolor = colors.BLACK54
@@ -203,9 +202,25 @@ class FunctionCard(UserControl):
             self.card_view.bgcolor = colors.BLACK26
             self.result_view.border = border.all(color=colors.BLUE)
             self.result_view.animate
-            # self.update_parameters_view()
             self.parameters_view.visible = True
         self.selected = not self.selected
+        self.update()
+
+
+    def _change_function_result_visible(self, e) -> None:
+        '''
+        Изменяет видимость результатов в карточке функции
+        '''
+        result_block = e.control.data
+        result_control = result_block.get('control').current
+        result_button = result_block.get('button').current
+
+        result_control.visible = not result_control.visible
+
+        if result_control.visible:
+            result_button.icon = icons.KEYBOARD_ARROW_UP
+        else:
+            result_button.icon = icons.KEYBOARD_ARROW_DOWN
         self.update()
     
 
@@ -214,6 +229,40 @@ class FunctionCard(UserControl):
         Обновляет список параметров
         '''
         self.ref_parameters_view.current.controls = self._get_parameters_view_list()
+
+
+    def update_function_card(self) -> None:
+        '''
+        Обновляет текст параметров в карточки функции
+        '''
+        # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
+        self.ref_result_view.current.content = self._get_result_view_list()
+        # dataframe = self.function.result
+        # data_points_list = []
+        # for df in dataframe:
+        #     data = df['data']
+        #     data_points_list.append(
+        #         [
+        #             LineChartDataPoint(x, y) for x, y in zip(data.iloc[:, 0], data.iloc[:, 1])
+        #         ]
+        #     )
+        # self.ref_result_view_LineChartData.current.data_points = data_points
+        
+        self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
+        self.ref_card_result_data.current.value = self._get_card_parameters_result()
+        self.update()
+        self.graphic_area.update()
+
+
+    def get_parameters(self) -> Container:
+        '''
+        Возвращает список параметров для отображения на экране
+
+        Returns:
+            Container: Контейнер, содержащий представление списка параметров
+        '''
+        return self.parameters_view
+
 
     def _get_parameters_view_list(self) -> list:
         '''
@@ -248,7 +297,7 @@ class FunctionCard(UserControl):
                             data={
                                 'param_name': param_name
                             },
-                            on_change=self._on_dropdown_change
+                            on_change=self._on_change_dropdown_value
                         )
                     ]
                 case 'dropdown_function_data':
@@ -288,7 +337,7 @@ class FunctionCard(UserControl):
                                 'param_name': param_name,
                                 'data': options
                             },
-                            on_change=self._on_dropdown_function_change,
+                            on_change=self._on_change_dropdown_function_value,
                         )
                     ]
                 case "slider":                    
@@ -312,7 +361,7 @@ class FunctionCard(UserControl):
                                         'param_title': param.get("title"),
                                         'param_name': param_name
                                     },
-                                    on_change_end=self._change_slider_title,
+                                    on_change_end=self._on_change_slider_value,
                                 )
                             ]
                         )
@@ -331,7 +380,7 @@ class FunctionCard(UserControl):
                                         'ref_checkboxes': ref_checkbox,
                                         'param_name': param_name,
                                     },
-                                    on_change=self._on_checkbox_change
+                                    on_change=self._on_change_checkbox_value
                                 )
                                 for idx, checkbox in enumerate(param.get('checkboxes', []))
                             ]
@@ -353,30 +402,14 @@ class FunctionCard(UserControl):
 
             # Добавление представления параметра в список
             parameters_view_list.append(
-                Row(
-                    controls=param_editor,
-                    data=param_type
-                )
+                Row(controls=param_editor, data=param_type)
             )
         return parameters_view_list
 
 
-    def get_parameters(self) -> Container:
-        '''
-        Возвращает список параметров для отображения на экране
-
-        Returns:
-            Container: Контейнер, содержащий представление списка параметров
-        '''
-        return self.parameters_view
-
-
-    def _change_slider_title(self, e) -> None:
+    def _on_change_slider_value(self, e) -> None:
         '''
         Обнавляет значение параметра в экземпляре класса Function, заголовке слайдера и карточке функции
-
-        Args:
-            e (Event): Событие изменения слайдера.
         '''
         # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
         slider_title = e.control.data.get('slider_text').current
@@ -390,7 +423,7 @@ class FunctionCard(UserControl):
         self.update_function_card()
 
 
-    def _on_dropdown_change(self, e) -> None:
+    def _on_change_dropdown_value(self, e) -> None:
         '''
         Обновляет значение параметра в экземпляре класса Function и карточке функции
         '''
@@ -402,7 +435,7 @@ class FunctionCard(UserControl):
         self.update_function_card()
 
 
-    def _on_dropdown_function_change(self, e) -> None:
+    def _on_change_dropdown_function_value(self, e) -> None:
         '''
         Обновляет значение параметра в экземпляре класса Function и карточке функции
         '''
@@ -415,7 +448,7 @@ class FunctionCard(UserControl):
         self.update_function_card()
 
     
-    def _on_checkbox_change(self, e) -> None:
+    def _on_change_checkbox_value(self, e) -> None:
         '''
         Обновляет значение параметр в экземпляре класса Function
         Изменяет список выбранных чекбоксов
@@ -457,7 +490,7 @@ class FunctionCard(UserControl):
         return '#### Параметры:\n' + parameters_text + '\n'
     
     
-    def _get_card_parameters_result(self, max_rows=10):
+    def _get_card_parameters_result(self, max_rows=10) -> str:
         df_list = self.function.result
         if not df_list:
             return '***Нет данных***'
@@ -483,44 +516,6 @@ class FunctionCard(UserControl):
                 
             markdown_table_list.append(markdown_table)
         return '\n\n'.join(markdown_table_list)
-
-
-    def _change_function_result_visible(self, e) -> None:
-        result_block = e.control.data
-        result_control = result_block.get('control').current
-        result_button = result_block.get('button').current
-
-        result_control.visible = not result_control.visible
-
-        if result_control.visible:
-            result_button.icon = icons.KEYBOARD_ARROW_UP
-        else:
-            result_button.icon = icons.KEYBOARD_ARROW_DOWN
-        self.update()
-
-
-    def update_function_card(self) -> None:
-        '''
-        Обновляет текст параметров в карточки функции
-        '''
-        # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
-        self.ref_result_view.current.content = self._get_result_view_list()
-        # dataframe = self.function.result
-        # data_points_list = []
-        # for df in dataframe:
-        #     data = df['data']
-        #     data_points_list.append(
-        #         [
-        #             LineChartDataPoint(x, y) for x, y in zip(data.iloc[:, 0], data.iloc[:, 1])
-        #         ]
-        #     )
-        # self.ref_result_view_LineChartData.current.data_points = data_points
-        
-        self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
-        self.ref_card_result_data.current.value = self._get_card_parameters_result()
-        self.update()
-        self.graphic_area.update()
-
 
 
     def _get_result_view_list(self) -> Column:
@@ -573,6 +568,13 @@ class FunctionCard(UserControl):
             return None
         
         element_controls = []
+
+        error_message = dataframe.get('error_message')
+        if error_message:
+            element_controls.append(
+                self._get_result_error_message(error_message)
+            )
+
         view_list = dataframe.get('view')
         if 'chart' in view_list:
             element_controls.append(self._get_function_result_graphic(dataframe, color=color))
@@ -583,22 +585,50 @@ class FunctionCard(UserControl):
 
         extra_data = dataframe.get('extra_data')
         if extra_data:
+            extra_data_name = extra_data.get('type')
             extra_data_control = self._get_result_element_view(extra_data, color=color)
             extra_data_view = self._get_dropdown_conteiner_for_control(
                 control=extra_data_control,
-                button_name='Показать исходные данные: ' + extra_data.get('type'),
+                button_name=f"Показать исходные данные:{(f' ***{extra_data_name.strip()}***')}",
                 is_open=False,
             )
             element_controls.append(extra_data_view)
 
         return Column(expand=True, controls=element_controls)
-
-
-    def get_result_view(self) -> Container:
-        return self.result_view
     
 
-    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False) -> LineChart:
+    def _get_result_error_message(self, error_message):
+        error_message_view = Container(
+            content=Row(
+                controls=[
+                    Icon(name=icons.ERROR_OUTLINE, color=colors.RED),
+                    Row(
+                        expand=True,
+                        wrap=True,
+                        controls=[
+                            Text(
+                                value=f'Ошибка: {error_message}', 
+                                color=colors.RED, 
+                                weight=FontWeight.BOLD, 
+                                size=16, 
+                                max_lines=3
+                            ),
+                        ]
+                    )
+                ],
+                expand=True,
+            ),
+            bgcolor=colors.with_opacity(0.05, colors.RED),
+            border=border.all(width=1,color=colors.RED),
+            border_radius=10,
+            padding=10,
+            margin=margin.only(left=10),
+        )
+        return error_message_view
+
+
+
+    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False) -> Container:
         df = dataframe.get('data')
         graphic_title = dataframe.get('type')
 
@@ -617,7 +647,6 @@ class FunctionCard(UserControl):
 
         data_series.append(
             LineChartData(
-                ref=self.ref_result_view_LineChartData,
                 data_points=data_points,
                 stroke_width=1,
                 color=color,
@@ -660,7 +689,7 @@ class FunctionCard(UserControl):
         )
         # chart_view = self._get_dropdown_conteiner_for_control(
         #     control=chart,
-        #     button_name='Показать график:' + (' ***' + graphic_title.strip() + '***' if graphic_title.strip() else '')
+            # button_name=f"Показать график:{(f' ***{graphic_title.strip()}***')}"
         # )
         # return chart_view
         return Row(controls=[chart])
@@ -725,16 +754,14 @@ class FunctionCard(UserControl):
             border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
             border_radius=10,
         )
-
-        data_table = Markdown(
-            expand=True,
-            value=transposed_df.to_markdown(),
-            extension_set=MarkdownExtensionSet.GITHUB_WEB,
-        )
-
+        # data_table = Markdown(    # ПОПЫТКА ОТОБРАЖАТЬ ГРАФИКИ, ТАКОЙ СПОСОБ БЫ УСКОРИЛ РАБОТУ, ОДНАКО СЕЙЧАС ОТОБРАЖАЕТСЯ НЕКОРРЕКТНО
+        #     expand=True,
+        #     value=transposed_df.to_markdown(),
+        #     extension_set=MarkdownExtensionSet.GITHUB_WEB,
+        # )
         datatable_viwe = self._get_dropdown_conteiner_for_control(
             control=datatable,
-            button_name='Показать таблицу данных:' + (' ***' + df_name.strip() + '***' if df_name.strip() else '')
+            button_name=f"Показать таблицу данных:{(f' ***{df_name.strip()}***')}"
         )
         return datatable_viwe
     
@@ -763,7 +790,7 @@ class FunctionCard(UserControl):
 
         datatable_viwe = self._get_dropdown_conteiner_for_control(
             control=datatable,
-            button_name='Показать таблицу статистических параметров:' + (' ***' + df_name.strip() + '***' if df_name.strip() else '')
+            button_name=f"Показать таблицу статистических параметров:{(f' ***{df_name.strip()}***')}"
         )
         return datatable_viwe
     
@@ -812,6 +839,7 @@ class FunctionCard(UserControl):
             ),
             animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
             border_radius=10,
+            margin=margin.only(left=10),
         )
         return dropdown_conteiner
 
@@ -846,3 +874,7 @@ class FunctionCard(UserControl):
             )
             
         self.graphic_area.update()
+
+
+    def get_result_view(self) -> Container:
+        return self.result_view

@@ -367,7 +367,5 @@ class GraphicArea(Row):
             for parameter in function_parameters.content.controls:
                 if parameter.data in ['dropdown_function_data']:
                     function_parameters.data.update_parameters_view()
-                    # parameter.controls
-                    # function_parameters.data.value
                     self.update()
                     break

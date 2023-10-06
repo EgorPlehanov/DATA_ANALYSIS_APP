@@ -184,6 +184,7 @@ class Model:
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
+        print('shift, data:', data)
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
 
@@ -198,12 +199,16 @@ class Model:
             N = len(df)
 
             error_message = ''
-            if N1 < 0 or N2 >= N:
-                error_message = f' - некорректные значения N1 и N2: 0 <= {N1} (N1), {N2} (N2) <= {N} (N)'
+            if N1 < 0 or N2 > N:
+                error_message = f'Некорректное значение N1 или N2: 0 <= N1 <= N2 <= {N}, значения N1 = {N1}, N2 = {N2}'
 
             if N1 > N and N2 > N:
-                error_message = f' - некорректные значения N1 и N2: {N1} (N1), {N2} (N2) > {N} (N)'
-                return [] 
+                error_message = f'Некорректные значения N1 и N2: N1 и N2 должны быть <= {N}, значения N1 = {N1}, N2 = {N2}'
+                print(error_message)
+                return [{
+                    'type': f'shift ({df_dict.get("type")})',
+                    'error_message': error_message
+                }] 
 
             shifted_df = df.get('y').copy()
             shifted_df[N1:N2+1] += C
@@ -212,9 +217,10 @@ class Model:
 
             result_list.append({
                 'data': shifted_df,
-                'type': f'shift ({df_dict.get("type")}){error_message}',
+                'type': f'shift ({df_dict.get("type")})',
                 'view': ['chart'], #'table_data'],
-                'extra_data': df_dict
+                'extra_data': df_dict,
+                'error_message': error_message,
             })
         return result_list
 

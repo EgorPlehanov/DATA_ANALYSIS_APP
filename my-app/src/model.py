@@ -184,7 +184,7 @@ class Model:
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
-        if not data:
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
 
         N1, N2 = int(N1), int(N2)
@@ -192,9 +192,8 @@ class Model:
             N1, N2 = N2, N1
 
         result_list = []
-        # result_list.extend(data)
 
-        for df_dict in data:
+        for df_dict in data.get('value'):
             df = df_dict.get('data')
             N = len(df)
 
@@ -230,8 +229,7 @@ class Model:
         :param Rs: Диапазон варьирования амплитуды
         :return: Данные с выбросами в виде структуры {'data': DataFrame, 'type': 'spikes'}
         """
-        N = int(N)
-        M = int(M)
+        N, M = int(N), int(M)
         error_message = ""
         if M < 0.005 * N or M > 0.01 * N:
             error_message = f' - некорректное количество выбросов: M должно быть в пределах [{0.005*N}, {0.01*N}]'
@@ -258,15 +256,11 @@ class Model:
         :param data: Данные для анализа (представленные в виде DataFrame)
         :return: DataFrame с рассчитанными статистическими характеристиками
         """
-        if not data:
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
 
-        # data = Model.noise(None, 1000, 100, 1)
-
         result_list = []
-        # result_list.extend(data)
-
-        for df_dict in data:
+        for df_dict in data.get('value'):
             df = df_dict.get('data')
             y = df.get('y').copy()
 
@@ -309,64 +303,61 @@ class Model:
         return result_list
     
 
-    def stationarity(data, N, M) -> list:
+    def stationarity(data, M) -> list:
         """
         Оценивает стационарность данных.
 
         :param data: Данные для анализа (представленные в виде DataFrame)
-        :param N: Длина данных
         :param M: Количество интервалов
         :return: True, если данные стационарны, иначе False
         """
-        data = Model.noise(None, N, 100, 1)[0]  # ДЛЯ ТЕСТА
-        df = data.get('data')
-        # df = pd.DataFrame({
-        #     'x': [i for i in range(N)],
-        #     'y': [5 for _ in range(N)]
-        # })
-        # data['data'] = df
-
-        N = int(N)
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
         M = int(M)
 
-        error_message = ''
-        if M < 2:
-            error_message = f' - некорректное кол-во интервалов: M должен быть больше 2'
+        result_list = []
+        for df_dict in data.get('value'):
+            df = df_dict.get('data')
+            y = df.get('y').copy()
+            N = len(y)
 
-        y = df['y'].values
-        
-        intervals = np.array_split(y, M)
-        means = np.array([np.mean(interval) for interval in intervals])
-        std_deviations = np.array([np.std(interval) for interval in intervals])
+            error_message = ''
+            if M > N:
+                error_message = f' - некорректное кол-во интервалов: M <= {N} (N)'
+                result_list.append({})
+            
+            intervals = np.array_split(y, M)
+            means = np.array([np.mean(interval) for interval in intervals])
+            std_deviations = np.array([np.std(interval) for interval in intervals])
 
-        is_stationarity = True
-        for i in range(M):
-            if not is_stationarity:
-                break
-
-            for j in range(i + 1, M):
-                delta_mean = abs(means[i] - means[j])
-                delta_std_dev = abs(std_deviations[i] - std_deviations[j])
-
-                if delta_mean >= 0.05 * np.ptp(y) or delta_std_dev >= 0.05 * np.ptp(y):
-                    is_stationarity = False
+            is_stationarity = True
+            for i in range(M):
+                if not is_stationarity:
                     break
-        res = adfuller(y)
-        # print(res)
-        is_stationarity_2 = res[1] < 0.05
-        stats_df = pd.DataFrame({
-            'Параметр': ['Стационарность', 'Стационарность'],
-            'Значение': [str(is_stationarity), str(is_stationarity_2)]
-        })
-        # 'Процесс ' + ('' if is_stationarity else 'НЕ ') + 'стационарный'
-        return [
-            data,
-            {
+
+                for j in range(i + 1, M):
+                    delta_mean = abs(means[i] - means[j])
+                    delta_std_dev = abs(std_deviations[i] - std_deviations[j])
+
+                    if delta_mean >= 0.05 * np.ptp(y) or delta_std_dev >= 0.05 * np.ptp(y):
+                        is_stationarity = False
+                        break
+            res = adfuller(y)
+            # print(res)
+            is_stationarity_2 = res[1] < 0.05
+            stats_df = pd.DataFrame({
+                'Параметр': ['Стационарность', 'Стационарность'],
+                'Значение': [str(is_stationarity), str(is_stationarity_2)]
+            })
+            # 'Процесс ' + ('' if is_stationarity else 'НЕ ') + 'стационарный'
+            result_list.append({
                 'data': stats_df,
                 'type': 'statistics' + error_message,
                 'view': ['table_statistics'],
-            }
-        ]
+                'extra_data': df_dict
+            })
+        return result_list
 
     
     functions_info = {
@@ -677,13 +668,8 @@ class Model:
                 'data': {
                     "title": "Выбор набора данных",
                     "type": "dropdown_function_data",
-                    "options": {
-                        0: {
-                            "text": "Не выбраны",
-                            'value': [],
-                        },
-                    },
-                    "default_value": 0,
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
                 },
                 'C': {
                     "title": "Cмещение данных C",
@@ -720,9 +706,9 @@ class Model:
                 'N': {
                     "title": "Длина данных N",
                     "type": "slider",
-                    "min": 100,
+                    "min": 10,
                     "max": 10000,
-                    "step": 100,
+                    "step": 10,
                     "default_value": 1000,
                 },
                 'M': {
@@ -763,13 +749,8 @@ class Model:
                 'data': {
                     "title": "Выбор набора данных",
                     "type": "dropdown_function_data",
-                    "options": {
-                        0: {
-                            "text": "Не выбраны",
-                            'value': [],
-                        },
-                    },
-                    "default_value": 0,
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
                 },
             }
         },
@@ -780,31 +761,18 @@ class Model:
             'name': 'Стационарность',
             'parameters': {
                 'data': {
-                    "title": "Выбор данных",
-                    "type": "dropdown",
-                    "options": [
-                        {
-                            "key": None,
-                            "text": "Не выбрана",
-                        },
-                    ],
-                    "default_value": None,
-                },
-                'N': {
-                    "title": "Длина данных N",
-                    "type": "slider",
-                    "min": 100,
-                    "max": 10000,
-                    "step": 100,
-                    "default_value": 1000,
+                    "title": "Выбор набора данных",
+                    "type": "dropdown_function_data",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
                 },
                 'M': {
                     "title": "Количество интервалов M",
                     "type": "slider",
-                    "min": 100,
+                    "min": 2,
                     "max": 5000,
-                    "step": 100,
-                    "default_value": 1000,
+                    "step": 1,
+                    "default_value": 100,
                 }
             }
         }

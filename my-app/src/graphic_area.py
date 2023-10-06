@@ -29,7 +29,6 @@ class GraphicArea(Row):
         self.app = app
         self.page = page
         self.spacing = 0
-        # self.auto_scroll = True
 
         # Ссылка на выбранную функцию
         self.ref_function_card = Ref[Container]()
@@ -78,7 +77,7 @@ class GraphicArea(Row):
 
         # Список параметров функций блоков (данные/обработка/анализ)
         self.list_function_parameters=[]
-
+        
         # Меню работы с параметрами
         self.parameters_menu = Container(
             alignment=alignment.top_center,
@@ -251,54 +250,11 @@ class GraphicArea(Row):
 
         # Добавляем параметры функции в список
         self.list_function_parameters.append(function_card.get_parameters())
-        self.update()
-
-
-    def change_selected_function(self, e) -> None:
-        '''
-        Изменяет выделение функции при клике на нее в блоке функций (данные/обработка/анализ).
-
-        Args:
-            e (Event): Параметры события
-        '''
-        clicked_function_card = e.control.data
-        selected_function = self.ref_function_card.current
         
-        # Изменяем выделение нажатой функции
-        clicked_function_card.change_selected(e)
-
-        if clicked_function_card == selected_function:
-            # Если нажата выбраная функция очищаем ссылку
-            self.ref_function_card.current = None
-        else:
-            # Снимаем выделение с предыдущей выбранной функции, если она есть
-            if selected_function is not None:
-                selected_function.change_selected(e)
-            
-            # Устанавливаем ссылку на новую выбранную функцию
-            self.ref_function_card.current = clicked_function_card
-
-            scroll_view = None
-            match clicked_function_card.function_type:
-                case 'data':
-                    self.ref_result_view.current.selected_index = 0
-                    scroll_view = self.ref_result_view_data.current
-                case 'edit':
-                    self.ref_result_view.current.selected_index = 1
-                    scroll_view = self.ref_result_view_edit.current
-                case 'analitic':
-                    self.ref_result_view.current.selected_index = 2
-                    scroll_view = self.ref_result_view_analitic.current
-
-            # ПРОКРУТКА ДО ЭЛЕМЕНТА В СПИСКЕ РЕЗУЛЬТАТОВ НЕ РАБОТЕТ
-            # ПРОКРУТКА СРАБАТЫВАЕТ НА РОДИТЕЛЬСКИЕ ЭЛЕМЕНТЫ И ОКНО ПРОКРУЧИВАЕТСЯ МИМО НУЖНОГО МЕСТА
-            # Блокируется auto_scroll=True, но тогда прокрутка всегда идет до конца
-            # scroll_view.scroll_to(
-            #     key=str(clicked_function_card.function_id),
-            #     duration=1000,
-            #     # curve=animation.AnimationCurve.FAST_OUT_SLOWIN
-            # )
         self.update()
+
+        self.debug_print('добавлена функция: ', function_card)   #TEST TEST TEST TEST
+        self.update_list_parametrs()
 
 
     def delete_function(self, e) -> None:
@@ -333,8 +289,85 @@ class GraphicArea(Row):
             case 'analitic':
                 self.list_functions_analitic.remove(function_to_remove)
                 self.list_results_analitic.remove(reslut_view_to_remove)
-        print('self.list_functions_edit', self.list_functions_edit)
-        print('self.list_results_edit', self.list_results_edit)
-        print('self.list_function_parameters', self.list_function_parameters)
-        
         self.update()
+
+        self.debug_print('удалена функция: ', function_to_remove)   #TEST TEST TEST TEST
+        self.update_list_parametrs()
+
+
+    def change_selected_function(self, e) -> None:
+        '''
+        Изменяет выделение функции при клике на нее в блоке функций (данные/обработка/анализ).
+
+        Args:
+            e (Event): Параметры события
+        '''
+        clicked_function_card = e.control.data
+        selected_function = self.ref_function_card.current
+        
+        # Изменяем выделение нажатой функции
+        clicked_function_card.change_selected(e)
+
+        if clicked_function_card == selected_function:
+            # Если нажата выбраная функция очищаем ссылку
+            self.ref_function_card.current = None
+        else:
+            # Снимаем выделение с предыдущей выбранной функции, если она есть
+            if selected_function is not None:
+                selected_function.change_selected(e)
+            
+            # Устанавливаем ссылку на новую выбранную функцию
+            self.ref_function_card.current = clicked_function_card
+
+            # scroll_view = None
+            match clicked_function_card.function_type:
+                case 'data':
+                    self.ref_result_view.current.selected_index = 0
+                    # scroll_view = self.ref_result_view_data.current
+                case 'edit':
+                    self.ref_result_view.current.selected_index = 1
+                    # scroll_view = self.ref_result_view_edit.current
+                case 'analitic':
+                    self.ref_result_view.current.selected_index = 2
+                    # scroll_view = self.ref_result_view_analitic.current
+
+            # ПРОКРУТКА ДО ЭЛЕМЕНТА В СПИСКЕ РЕЗУЛЬТАТОВ НЕ РАБОТЕТ
+            # ПРОКРУТКА СРАБАТЫВАЕТ НА РОДИТЕЛЬСКИЕ ЭЛЕМЕНТЫ И ОКНО ПРОКРУЧИВАЕТСЯ МИМО НУЖНОГО МЕСТА
+            # Блокируется auto_scroll=True, но тогда прокрутка всегда идет до конца
+            # scroll_view.scroll_to(
+            #     key=str(clicked_function_card.function_id),
+            #     duration=1000,
+            #     # curve=animation.AnimationCurve.FAST_OUT_SLOWIN
+            # )
+        self.update()
+
+
+    
+
+    def debug_print(self, text, function) -> None:
+        return
+        print(text, function.function_id)
+        print()
+        print('function.get_parameters(): ', dir(function.get_parameters()))
+        print()
+        print('list_functions_data', self.list_functions_data)
+        print('list_results_data', self.list_results_data)
+        print()
+        print('list_functions_edit', self.list_functions_edit)
+        print('list_results_edit', self.list_results_edit)
+        print()
+        print('list_functions_analitic', self.list_functions_analitic)
+        print('list_results_analitic', self.list_results_analitic)
+        print()
+        print('list_function_parameters', self.list_function_parameters)
+
+
+    def update_list_parametrs(self) -> None:
+        for function_parameters in self.list_function_parameters:
+            for parameter in function_parameters.content.controls:
+                if parameter.data in ['dropdown_function_data']:
+                    function_parameters.data.update_parameters_view()
+                    # parameter.controls
+                    # function_parameters.data.value
+                    self.update()
+                    break

@@ -172,7 +172,7 @@ class GraphicArea(Row):
                                     for option in dropdown_options
                                 ]
                             ),
-                            IconButton(icon="add", on_click=lambda _: self.add_function_to_list(
+                            IconButton(icon="add", on_click=lambda _: self.add_function(
                                     ref_dropdown,
                                     list_functions,
                                     list_results,
@@ -214,84 +214,6 @@ class GraphicArea(Row):
             ),
         )
         return results_view_tab
-
-
-    def add_function_to_list(
-            self,
-            ref: Ref[Dropdown],
-            list_functions: List[FunctionCard],
-            list_results: List[Container],
-            function_type: str
-        ) -> None:
-        """
-        Добавляет функцию в список.
-
-        Args:
-            ref (Ref[Dropdown]): Ссылка на выпадающий список.\n
-            list_functions (List[FunctionCard]): Список функций блока (данные/обработка/анализ).
-        """
-        function_name = ref.current.value
-        if not function_name:
-            return
-
-        function_card = FunctionCard(
-            graphic_area=self,
-            app=self.app,
-            page=self.page,
-            function_name=function_name,
-            function_type=function_type,
-            on_change_selected=self.change_selected_function,
-            on_click_delete=self.delete_function,
-        )
-
-        # Добавляем в список для блоков функций и результатов (данные/обработка/анализ)
-        list_functions.append(function_card)
-        list_results.append(function_card.get_result_view())
-        # Добавляем параметры функции в список
-        self.list_function_parameters.append(function_card.get_parameters())
-        
-        self.update_list_parametrs()
-        self.update()
-
-        self.debug_print('добавлена функция: ', function_card)   #TEST TEST TEST TEST
-
-
-    def delete_function(self, e) -> None:
-        '''
-        Удаляет функцию из блока (данные/обработка/анализ)
-
-        Args:
-            e (Event): Параметры события
-        '''
-        function_to_remove = e.control.data
-        reslut_view_to_remove = function_to_remove.ref_result_view.current
-        selected_function = self.ref_function_card.current
-
-        # Удаляем из выбранного
-        if function_to_remove == selected_function:
-            self.ref_function_card.current = None
-
-        # Удаляем список параметров
-        for item in self.list_function_parameters:
-            if item.data == function_to_remove:
-                self.list_function_parameters.remove(item)
-                break 
-        
-        # Удаляем из списка функций
-        match function_to_remove.function_type:
-            case 'data':
-                self.list_functions_data.remove(function_to_remove)
-                self.list_results_data.remove(reslut_view_to_remove)
-            case 'edit':
-                self.list_functions_edit.remove(function_to_remove)
-                self.list_results_edit.remove(reslut_view_to_remove)
-            case 'analitic':
-                self.list_functions_analitic.remove(function_to_remove)
-                self.list_results_analitic.remove(reslut_view_to_remove)
-        self.update_list_parametrs()
-        self.update()
-
-        self.debug_print('удалена функция: ', function_to_remove)   #TEST TEST TEST TEST
 
 
     def change_selected_function(self, e) -> None:
@@ -341,16 +263,98 @@ class GraphicArea(Row):
         self.update()
 
 
-    def update_list_parametrs(self) -> None:
+    def add_function(
+            self,
+            ref: Ref[Dropdown],
+            list_functions: List[FunctionCard],
+            list_results: List[Container],
+            function_type: str
+        ) -> None:
+        """
+        Добавляет функцию в список.
+
+        Args:
+            ref (Ref[Dropdown]): Ссылка на выпадающий список.\n
+            list_functions (List[FunctionCard]): Список функций блока (данные/обработка/анализ).
+            list_results (List[Container]): Список результатов блока (данные/обработка/анализ).
+            function_type (str): Тип функции.
+        """
+        function_name = ref.current.value
+        if not function_name:
+            return
+
+        function_card = FunctionCard(
+            graphic_area=self,
+            app=self.app,
+            page=self.page,
+            function_name=function_name,
+            function_type=function_type,
+            on_change_selected=self.change_selected_function,
+            on_click_delete=self.delete_function,
+        )
+
+        # Добавляем в список для блоков функций и результатов (данные/обработка/анализ)
+        list_functions.append(function_card)
+        list_results.append(function_card.get_result_view())
+        # Добавляем параметры функции в список
+        self.list_function_parameters.append(function_card.get_parameters())
+        
+        self.update_list_parametrs()
+        self.update()
+
+
+    def delete_function(self, e) -> None:
+        '''
+        Удаляет функцию из блока (данные/обработка/анализ)
+        '''
+        function_to_remove = e.control.data
+        reslut_view_to_remove = function_to_remove.ref_result_view.current
+        selected_function = self.ref_function_card.current
+
+        # Удаляем ссылку на функцию из списка связанных у функции из которой берутся данные
+        if function_to_remove.provider_function is not None:
+            function_to_remove.provider_function.list_dependent_functions.remove(function_to_remove)
+
+        # Удаляем из выбранного
+        if function_to_remove == selected_function:
+            self.ref_function_card.current = None
+
+        # Удаляем список параметров
+        for item in self.list_function_parameters:
+            if item.data == function_to_remove:
+                self.list_function_parameters.remove(item)
+                break 
+        
+        # Удаляем из списка функций
+        match function_to_remove.function_type:
+            case 'data':
+                self.list_functions_data.remove(function_to_remove)
+                self.list_results_data.remove(reslut_view_to_remove)
+            case 'edit':
+                self.list_functions_edit.remove(function_to_remove)
+                self.list_results_edit.remove(reslut_view_to_remove)
+            case 'analitic':
+                self.list_functions_analitic.remove(function_to_remove)
+                self.list_results_analitic.remove(reslut_view_to_remove)
+
+        self.update_list_parametrs(function_to_remove.list_dependent_functions)
+        self.update()
+
+
+    def update_list_parametrs(self, list_dependent_functions=None) -> None:
         '''
         Обновление списка параметров для функций у которых есть выбор данных из другого блока функций
         '''
-        for function_parameters in self.list_function_parameters:
-            for parameter in function_parameters.content.controls:
-                if parameter.data in ['dropdown_function_data']:
-                    function_parameters.data.update_parameters_view()
-                    self.update()
-                    break
+        if isinstance(list_dependent_functions, list) and len(list_dependent_functions) > 0:
+            for dependent_function in list_dependent_functions:
+                dependent_function.update_function_card(update_parameters=True)
+        else:
+            for function_parameters in self.list_function_parameters:
+                for parameter in function_parameters.content.controls:
+                    if parameter.data in ['dropdown_function_data']:
+                        function_parameters.data.update_function_card(update_parameters=True)
+                        self.update()
+                        break
 
     
 

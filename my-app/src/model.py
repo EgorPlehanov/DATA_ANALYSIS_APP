@@ -233,15 +233,17 @@ class Model:
         """
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
-
+        
         N1, N2 = int(N1), int(N2)
         if N1 > N2:
             N1, N2 = N2, N1
 
         result_list = []
-
-        for df_dict in data.get('value'):
-            df = df_dict.get('data')
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
             N = len(df)
 
             error_message = ''
@@ -313,8 +315,11 @@ class Model:
             return []
 
         result_list = []
-        for df_dict in data.get('value'):
-            df = df_dict.get('data')
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
             y = df.get('y').copy()
 
             # N = len(y)
@@ -369,8 +374,11 @@ class Model:
         M = int(M)
 
         result_list = []
-        for df_dict in data.get('value'):
-            df = df_dict.get('data')
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
             y = df.get('y').copy()
             N = len(y)
 

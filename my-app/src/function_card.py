@@ -60,6 +60,8 @@ class FunctionCard(UserControl):
         self.function_name = function_name
         self.function_name_formatted = f'{self.function_name} (id: {self.function_id}, type: {self.function_type})'
         self.selected = False
+        self.list_dependent_functions = []
+        self.provider_function = None
 
         # Функции обработчики нажатий на кнопки карточки функции 
         self.on_change_selected = on_change_selected
@@ -252,12 +254,11 @@ class FunctionCard(UserControl):
         self.ref_parameters_view.current.controls = self._get_parameters_view_list()
 
 
-    def update_function_card(self) -> None:
+    def update_function_card(self, update_parameters: bool = False) -> None:
         '''
         Обновляет текст параметров в карточки функции
         '''
         # ПЕРЕДЕЛАТЬ ОБНОВЛЕНИЕ ДАННЫХ ГРАФИКОВ БЕЗ ПЕРЕСОЗДАНИЯ ОБЕКТОВ ГРАФИКОВ
-        self.ref_result_view.current.content = self._get_result_view_list()
         # dataframe = self.function.result
         # data_points_list = []
         # for df in dataframe:
@@ -268,9 +269,17 @@ class FunctionCard(UserControl):
         #         ]
         #     )
         # self.ref_result_view_LineChartData.current.data_points = data_points
-        
+        if update_parameters:
+            self.ref_parameters_view.current.controls = self._get_parameters_view_list()
+            self.function._calculate()
+
+        self.ref_result_view.current.content = self._get_result_view_list()
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
         self.ref_card_result_data.current.value = self._get_card_parameters_result()
+
+        for dependent_function in self.list_dependent_functions:
+            dependent_function.update_function_card(update_parameters=True)
+
         self.update()
         self.graphic_area.update()
 
@@ -328,8 +337,8 @@ class FunctionCard(UserControl):
                     options.update({
                         function_card.function_name_formatted: {
                             'function_name': function_card.function_name_formatted,
-                            'value': function_card.function.result
-                            # 'value': function_card
+                            # 'value': function_card.function.result
+                            'value': function_card
                         }
                         for function_card in function_card_list
                     })
@@ -458,6 +467,11 @@ class FunctionCard(UserControl):
         param_value = e.control.data.get('data').get(dropdown_value)
         self.function.set_parameter_value(param_name, param_value)
 
+        function_card = param_value.get('value')
+        if isinstance(function_card, FunctionCard):
+            function_card.list_dependent_functions.append(self)
+            self.provider_function = function_card
+
         self.update_function_card()
 
     
@@ -499,13 +513,18 @@ class FunctionCard(UserControl):
         formatted_parameters = []
 
         for param, item in parameters.items():
-            # \u00A0 - Unicode символ неразмеренного пробела
+            
             if isinstance(item, dict):
                 # Отображение для параметра функция из другого блока
-                elements = [elem.get('type') for elem in item.get('value', [])]
+                elements_list = item.get('value', [])
+
+                if isinstance(elements_list, FunctionCard):
+                    elements_list = elements_list.function.result
+
+                elements = [elem.get('type') for elem in elements_list]
                 formatted_item = f"*{param}*:\u00A0**{item.get('function_name')}**: ***{elements}***"
             else:
-                formatted_item = f"*{param}*:\u00A0**{item}**"
+                formatted_item = f"*{param}*:\u00A0**{item}**"  # \u00A0 - Unicode символ неразмеренного пробела
 
             formatted_parameters.append(formatted_item)
 

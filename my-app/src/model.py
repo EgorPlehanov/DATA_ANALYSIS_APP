@@ -376,7 +376,7 @@ class Model:
 
             error_message = ''
             if M > N:
-                error_message = f'Некорректное кол-во интервалов: M <= {N} (N)'
+                error_message = f'Некорректное кол-во интервалов: M должен быть <= N. M = {M}, N = {N}'
                 result_list.append(Model.get_result_dict(error_message=error_message))
                 continue
             
@@ -859,7 +859,7 @@ class Model:
                     "type": "slider",
                     "title": "Количество интервалов M",
                     "min": 2,
-                    "max": 5000,
+                    "max": 1000,
                     "step": 1,
                     "default_value": 100,
                 }

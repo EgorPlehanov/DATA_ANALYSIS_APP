@@ -48,7 +48,6 @@ from function import Function
 
 class FunctionCard(UserControl):
     id_counter = itertools.count()
-
         
     def __init__(self, graphic_area, app, page, function_name, function_type, on_change_selected, on_click_delete):
         super().__init__()
@@ -246,13 +245,6 @@ class FunctionCard(UserControl):
             result_button.icon = icons.KEYBOARD_ARROW_DOWN
         self.update()
     
-
-    def update_parameters_view(self) -> None:
-        '''
-        Обновляет список параметров
-        '''
-        self.ref_parameters_view.current.controls = self._get_parameters_view_list()
-
 
     def update_function_card(self, update_parameters: bool = False) -> None:
         '''

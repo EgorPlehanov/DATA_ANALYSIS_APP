@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import Any
 from model import Model
+import copy
 
 
 
@@ -13,7 +14,10 @@ class Function:
         self.parameters_names = list(self.parameters_info.keys())
 
         for param_name, param_info in self.parameters_info.items():
-            setattr(self, param_name, param_info['default_value'])
+            param_value = param_info['default_value']
+            if isinstance(param_value, (list, dict, set)):
+                param_value = copy.deepcopy(param_value)
+            setattr(self, param_name, param_value)
         
         self._calculate()
 

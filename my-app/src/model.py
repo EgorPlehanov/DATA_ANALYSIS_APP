@@ -33,15 +33,57 @@ class Model:
                 data_functions.append({'key': key, 'name': info.get('name', key)})
         return data_functions
     
+
     def round_and_clip_dataframe(df: DataFrame, max_value: int = 1000000000, decimal_places: int = 4) -> DataFrame:
-    # Округление значений в датафрейме
-        df = df.round(decimal_places)
+        '''
+        Округляет и удаляет значения больше заданного порога в датафрейме
+        '''
+        def round_and_clip(value):
+            if isinstance(value, (int, float)):
+                return round(value, decimal_places) if value <= max_value else max_value
+            else:
+                return value
+            
+        return df.map(round_and_clip)
 
-        # Удаление значений больше заданного порога
-        for col in df.columns:
-            df = df[df[col] <= max_value]
 
-        return df
+    def get_result_dict(
+            data: DataFrame = None,
+            type: str = None,
+            initial_data: dict = None,
+            error_message: str = None,
+            view_chart: bool = None,
+            view_table_horizontal: bool = None,
+            view_table_vertical: bool = None,
+            in_list: bool = False
+        ) -> dict:
+        result_dict = {}
+
+        if data is not None:
+            result_dict['data'] = Model.round_and_clip_dataframe(data)
+            
+        if initial_data:
+            result_dict['extra_data'] = initial_data
+
+        if type:
+            initial_data_type = f" ({initial_data.get('type', '')})" if initial_data else ''
+            result_dict['type'] = f'{type}{initial_data_type}'
+
+        if error_message:
+            result_dict['error_message'] = error_message
+
+        view_list = []
+        if view_chart:
+            view_list.append('chart')
+        if view_table_horizontal:
+            view_list.append('table_data')
+        if view_table_vertical:
+            view_list.append('table_statistics')
+        result_dict['view'] = view_list
+
+        if in_list:
+            return [result_dict]
+        return result_dict
 
     
     # ========== DATA FUNCTIONS ==========
@@ -59,7 +101,7 @@ class Model:
         return b * np.exp(-a * t)
 
 
-    def trend(type, a, b, step, N) -> list:
+    def trend(type, a, b, step, N, show_table_data=False) -> list:
         t = np.arange(0, N, step)
         data = None
 
@@ -73,28 +115,29 @@ class Model:
             data = Model.trend_function_nonlinear_falling(t, a, b)
 
         df = pd.DataFrame({'x': t, 'y': data})
-        df = Model.round_and_clip_dataframe(df)
-        return [{
-            'data': df,
-            'type': type,
-            'view': ['chart'],
-        }]
+        return Model.get_result_dict(
+            data=df,
+            type=type,
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True
+        )
     
 
-    def multi_trend(type_list, a, b, step, N) -> list:
+    def multi_trend(type_list, a, b, step, N, show_table_data=False) -> list:
         if len(type_list) == 0:
-            return []
+            return Model.get_result_dict(error_message="Нет данных для построения графика", in_list=True)
         
         df_list = []
         for type in type_list:
-            df_list.append(*Model.trend(type, a, b, step, N))
+            df_list.append(*Model.trend(type, a, b, step, N, show_table_data))
         return df_list
     
 
-    def combinate_trend(type_list, a, b, step, N) -> list:
+    def combinate_trend(type_list, a, b, step, N, show_table_data=False) -> list:
         num_parts = len(type_list)
         if num_parts == 0:
-            return []
+            return Model.get_result_dict(error_message="Нет данных для построения графика", in_list=True)
 
         # Разделить период t на равные части
         t_parts = np.array_split(np.arange(0, N, step), num_parts)
@@ -125,11 +168,13 @@ class Model:
         # Объединить результаты
         combined_df = pd.concat(df_list, ignore_index=True)
         combined_df = Model.round_and_clip_dataframe(combined_df)
-        return [{
-            'data': combined_df,
-            'type': ' -> '.join(type_list),
-            'view': ['chart'],
-        }]
+        return Model.get_result_dict(
+            data=combined_df,
+            type=' -> '.join(type_list),
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
 
 
     def data_download(input_data):
@@ -137,7 +182,7 @@ class Model:
     
     # ========== EDIT FUNCTIONS ==========
 
-    def noise(data, N, R, delta) -> list:
+    def noise(data, N, R, delta, show_table_data=False) -> list:
         N = int(N)
         # Генерация случайного шума в заданном диапазоне [-R, R]
         noise_data = np.random.uniform(-R, R, N)
@@ -148,15 +193,16 @@ class Model:
 
         t = np.arange(0, N * delta, delta)
         noised_data = pd.DataFrame({'x': t, 'y': normalized_noise})
-        noised_data = Model.round_and_clip_dataframe(noised_data)
-        return [{
-            'data': noised_data,
-            'type': 'noise',
-            'view': ['chart']#, 'table_data'],
-        }]
+        return Model.get_result_dict(
+            data=noised_data,
+            type='noise',
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
 
 
-    def myNoise(data, N, R, delta) -> list:
+    def my_noise(data, N, R, delta, show_table_data=False) -> list:
         N = int(N)
 
         current_time = int(time.time())
@@ -166,15 +212,16 @@ class Model:
     
         t = np.arange(0, N * delta, delta)
         noised_data = pd.DataFrame({'x': t, 'y': custom_noise_data})
-        noised_data = Model.round_and_clip_dataframe(noised_data)
-        return [{
-            'data': noised_data,
-            'type': 'myNoise',
-            'view': ['chart']#, 'table_data'],
-        }]
+        return Model.get_result_dict(
+            data=noised_data,
+            type='my_noise',
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
     
 
-    def shift(data, C, N1, N2) -> dict:
+    def shift(data, C, N1, N2, show_table_data=False) -> dict:
         """
         Сдвигает данные data в интервале [N1, N2] на константу C.
 
@@ -203,28 +250,24 @@ class Model:
 
             if N1 > N and N2 > N:
                 error_message = f'Некорректные значения N1 и N2: N1 и N2 должны быть <= {N}, значения N1 = {N1}, N2 = {N2}'
-                print(error_message)
-                return [{
-                    'type': f'shift ({df_dict.get("type")})',
-                    'error_message': error_message
-                }] 
+                result_list.append(Model.get_result_dict(error_message=error_message))
+                continue
 
             shifted_df = df.get('y').copy()
             shifted_df[N1:N2+1] += C
             shifted_df = pd.DataFrame({'x': df.get('x').copy(), 'y': shifted_df})
-            shifted_df = Model.round_and_clip_dataframe(shifted_df)
-
-            result_list.append({
-                'data': shifted_df,
-                'type': f'shift ({df_dict.get("type")})',
-                'view': ['chart'], #'table_data'],
-                'extra_data': df_dict,
-                'error_message': error_message,
-            })
+            result_list.append(Model.get_result_dict(
+                data=shifted_df,
+                type='shift',
+                initial_data = df_dict,
+                error_message=error_message,
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
         return result_list
+        
 
-
-    def spikes(N, M, R, Rs) -> list:
+    def spikes(N, M, R, Rs, show_table_data=False) -> list:
         """
         Генерирует M случайных выбросов (спайков) на интервале [0, N] со случайными амплитудами.
 
@@ -232,12 +275,14 @@ class Model:
         :param M: Количество выбросов
         :param R: Опорное значение
         :param Rs: Диапазон варьирования амплитуды
-        :return: Данные с выбросами в виде структуры {'data': DataFrame, 'type': 'spikes'}
         """
         N, M = int(N), int(M)
+        if N < M:
+            return Model.get_result_dict(error_message=f'Некорректное количество выбросов: M должно быть <= N. M = {M}, N = {N}', in_list=True)
+
         error_message = ""
         if M < 0.005 * N or M > 0.01 * N:
-            error_message = f' - некорректное количество выбросов: M должно быть в пределах [{0.005*N}, {0.01*N}]'
+            error_message = f'Некорректное количество выбросов: M должно быть в пределах [{0.005*N}, {0.01*N}]'
         
         data = np.zeros(N)
         spike_indices = np.random.choice(N, M, replace=False)
@@ -245,12 +290,15 @@ class Model:
         spike_signs = np.random.choice([-1, 1], M)  # Выбираем случайный знак для выбросов
         data[spike_indices] = spike_signs * spike_amplitudes
         spikes_df = pd.DataFrame({'x': np.arange(N), 'y': data})
-        spikes_df = Model.round_and_clip_dataframe(spikes_df)
-        return [{
-            'data': spikes_df,
-            'type': 'spikes' + error_message,
-            'view': ['chart', 'table_data'],
-        }]
+        return Model.get_result_dict(
+            data=spikes_df,
+            type='spikes',
+            error_message=error_message,
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
+        
 
     # ========== ANALITIC FUNCTIONS ==========
 
@@ -298,13 +346,12 @@ class Model:
                     [min_value, max_value, mean, variance, std_dev, skewness,
                     skewness_coeff, kurtosis, kurtosis_coeff, squared_mean, rmse]))
             })
-           
-            result_list.append({
-                'data': stats_df,
-                'type': f'statistics ({df_dict.get("type")})',
-                'view': ['table_statistics'],
-                'extra_data': df_dict
-            })
+            result_list.append(Model.get_result_dict(
+                data=stats_df,
+                type='statistics',
+                initial_data = df_dict,
+                view_table_vertical=True,
+            ))
         return result_list
     
 
@@ -329,8 +376,9 @@ class Model:
 
             error_message = ''
             if M > N:
-                error_message = f' - некорректное кол-во интервалов: M <= {N} (N)'
-                result_list.append({})
+                error_message = f'Некорректное кол-во интервалов: M <= {N} (N)'
+                result_list.append(Model.get_result_dict(error_message=error_message))
+                continue
             
             intervals = np.array_split(y, M)
             means = np.array([np.mean(interval) for interval in intervals])
@@ -351,17 +399,18 @@ class Model:
             res = adfuller(y)
             # print(res)
             is_stationarity_2 = res[1] < 0.05
+
             stats_df = pd.DataFrame({
                 'Параметр': ['Стационарность', 'Стационарность'],
                 'Значение': [str(is_stationarity), str(is_stationarity_2)]
             })
             # 'Процесс ' + ('' if is_stationarity else 'НЕ ') + 'стационарный'
-            result_list.append({
-                'data': stats_df,
-                'type': 'statistics' + error_message,
-                'view': ['table_statistics'],
-                'extra_data': df_dict
-            })
+            result_list.append(Model.get_result_dict(
+                data=stats_df,
+                type='stationarity',
+                initial_data = df_dict,
+                view_table_vertical=True,
+            ))
         return result_list
 
     
@@ -373,8 +422,8 @@ class Model:
             'name': 'trend',
             "parameters": {
                 "type": {
-                    "title": "Тип тренда",
                     "type": "dropdown",
+                    "title": "Тип тренда",
                     "options": [
                         {
                             "key": "linear_rising",
@@ -396,36 +445,41 @@ class Model:
                     "default_value": "linear_rising",
                 },
                 "a": {
-                    "title": "Параметр a",
                     "type": "slider",
+                    "title": "Параметр a",
                     "min": 0.01,
-                    "max": 10.0,
+                    "max": 5.0,
                     "step": 0.01,
                     "default_value": 0.01,
                 },
                 "b": {
-                    "title": "Параметр b",
                     "type": "slider",
+                    "title": "Параметр b",
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
                     "default_value": 1.0,
                 },
                 "step": {
-                    "title": "Интервал Δ",
                     "type": "slider",
+                    "title": "Интервал Δ",
                     "min": 1,
                     "max": 10,
                     "step": 1,
                     "default_value": 1,
                 },
                 "N": {
-                    "title": "Длина данных N",
                     "type": "slider",
+                    "title": "Длина данных N",
                     "min": 100,
                     "max": 5000,
                     "step": 100,
                     "default_value": 600,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
         },
@@ -436,8 +490,8 @@ class Model:
             'name': 'multi_trend',
             'parameters': {
                 "type_list": {
-                    "title": "Тип тренда",
                     "type": "checkbox",
+                    "title": "Тип тренда",
                     "checkboxes": [
                         {
                             "key": "linear_rising",
@@ -463,36 +517,41 @@ class Model:
                     "default_value": ["linear_rising", "linear_falling", "nonlinear_rising", "nonlinear_falling"],
                 },
                 "a": {
-                    "title": "Параметр a",
                     "type": "slider",
+                    "title": "Параметр a",
                     "min": 0.01,
                     "max": 10.0,
                     "step": 0.01,
                     "default_value": 0.01,
                 },
                 "b": {
-                    "title": "Параметр b",
                     "type": "slider",
+                    "title": "Параметр b",
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
                     "default_value": 1.0,
                 },
                 "step": {
-                    "title": "Интервал Δ",
                     "type": "slider",
+                    "title": "Интервал Δ",
                     "min": 1,
                     "max": 15,
                     "step": 1,
                     "default_value": 1,
                 },
                 "N": {
-                    "title": "Длина данных N",
                     "type": "slider",
+                    "title": "Длина данных N",
                     "min": 100,
                     "max": 5000,
                     "step": 100,
                     "default_value": 600,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
         },
@@ -503,8 +562,8 @@ class Model:
             'name': 'combinate_trend',
             'parameters': {
                 "type_list": {
-                    "title": "Тип тренда",
                     "type": "checkbox",
+                    "title": "Тип тренда",
                     "checkboxes": [
                         {
                             "key": "linear_rising",
@@ -530,36 +589,41 @@ class Model:
                     "default_value": ["linear_rising", "linear_falling", "nonlinear_rising", "nonlinear_falling"],
                 },
                 "a": {
-                    "title": "Параметр a",
                     "type": "slider",
+                    "title": "Параметр a",
                     "min": 0.01,
                     "max": 10.0,
                     "step": 0.01,
                     "default_value": 0.01,
                 },
                 "b": {
-                    "title": "Параметр b",
                     "type": "slider",
+                    "title": "Параметр b",
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
                     "default_value": 1.0,
                 },
                 "step": {
-                    "title": "Интервал Δ",
                     "type": "slider",
+                    "title": "Интервал Δ",
                     "min": 1,
                     "max": 15,
                     "step": 1,
                     "default_value": 1,
                 },
                 "N": {
-                    "title": "Длина данных N",
                     "type": "slider",
+                    "title": "Длина данных N",
                     "min": 100,
                     "max": 5000,
                     "step": 100,
                     "default_value": 600,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
         },
@@ -570,8 +634,8 @@ class Model:
             'name': 'Загрузить свой набор данных',
             'parameters': {
                 'input_data': {
-                    "title": "Выбор файла данных",
                     "type": "file_picker",
+                    "title": "Выбор файла данных",
                     "default_value": None,
                 }
             }
@@ -585,8 +649,8 @@ class Model:
             'name': 'Случайный шум',
             'parameters': {
                 'data': {
-                    "title": "Выбор данных",
                     "type": "dropdown",
+                    "title": "Выбор данных",
                     "options": [
                         {
                             "key": None,
@@ -596,40 +660,45 @@ class Model:
                     "default_value": None,
                 },
                 'N': {
-                    "title": "Длина данных N",
                     "type": "slider",
+                    "title": "Длина данных N",
                     "min": 10,
                     "max": 5000,
                     "step": 10,
                     "default_value": 600,
                 },
                 'R': {
-                    "title": "Параметр диапозона R",
                     "type": "slider",
+                    "title": "Параметр диапозона R",
                     "min": 0.1,
                     "max": 1000.0,
                     "step": 0.1,
                     "default_value": 0.1,
                 },
                 'delta': {
-                    "title": "Интервал Δ",
                     "type": "slider",
+                    "title": "Интервал Δ",
                     "min": 1,
                     "max": 15,
                     "step": 1,
                     "default_value": 1,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
         },
 
         'myNoise': {
-            'function': myNoise,
+            'function': my_noise,
             'type': 'edit',
             'name': 'Мой случайный шум',
             'parameters': {
                 'data': {
-                    "title": "Выбор данных",
                     "type": "dropdown",
+                    "title": "Выбор данных",
                     "options": [
                         {
                             "key": None,
@@ -639,28 +708,33 @@ class Model:
                     "default_value": None,
                 },
                 'N': {
-                    "title": "Длина данных N",
                     "type": "slider",
+                    "title": "Длина данных N",
                     "min": 10,
                     "max": 5000,
                     "step": 10,
                     "default_value": 600,
                 },
                 'R': {
-                    "title": "Параметр диапозона R",
                     "type": "slider",
+                    "title": "Параметр диапозона R",
                     "min": 0.1,
                     "max": 1000.0,
                     "step": 0.1,
                     "default_value": 0.1,
                 },
                 'delta': {
-                    "title": "Интервал Δ",
                     "type": "slider",
+                    "title": "Интервал Δ",
                     "min": 1,
                     "max": 15,
                     "step": 1,
                     "default_value": 1,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
         },
@@ -671,34 +745,39 @@ class Model:
             'name': 'Сдвиг',
             'parameters': {
                 'data': {
-                    "title": "Выбор набора данных",
                     "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
                     "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
                     "default_value": {'function_name': 'Не выбраны', 'value': []},
                 },
                 'C': {
-                    "title": "Cмещение данных C",
                     "type": "slider",
+                    "title": "Cмещение данных C",
                     "min": -1000,
                     "max": 1000,
                     "step": 0.1,
                     "default_value": 200,
                 },
                 'N1': {
-                    "title": "Cмещение от N1",
                     "type": "slider",
+                    "title": "Cмещение от N1",
                     "min": 0,
                     "max": 5000,
                     "step": 1,
                     "default_value": 100,
                 },
                 'N2': {
-                    "title": "Cмещение до N2",
                     "type": "slider",
+                    "title": "Cмещение до N2",
                     "min": 0,
                     "max": 5000,
                     "step": 1,
                     "default_value": 500,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
         },
@@ -709,36 +788,41 @@ class Model:
             'name': 'Одиночные выбросы',
             'parameters': {
                 'N': {
-                    "title": "Длина данных N",
                     "type": "slider",
+                    "title": "Длина данных N",
                     "min": 10,
                     "max": 10000,
                     "step": 10,
                     "default_value": 1000,
                 },
                 'M': {
-                    "title": "Количество выбросов M",
                     "type": "slider",
+                    "title": "Количество выбросов M",
                     "min": 1,
                     "max": 100,
                     "step": 1,
                     "default_value": 10,
                 },
                 'R': {
-                    "title": "Опорное значение R",
                     "type": "slider",
+                    "title": "Опорное значение R",
                     "min": 1,
                     "max": 10000,
                     "step": 1,
                     "default_value": 1000,
                 },
                 'Rs': {
-                    "title": "Длина данных Rs",
                     "type": "slider",
+                    "title": "Длина данных Rs",
                     "min": 1,
                     "max": 1000,
                     "step": 1,
                     "default_value": 500,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
                 },
             }
 
@@ -752,8 +836,8 @@ class Model:
             'name': 'Статистические данные',
             'parameters': {
                 'data': {
-                    "title": "Выбор набора данных",
                     "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
                     "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
                     "default_value": {'function_name': 'Не выбраны', 'value': []},
                 },
@@ -766,14 +850,14 @@ class Model:
             'name': 'Стационарность',
             'parameters': {
                 'data': {
-                    "title": "Выбор набора данных",
                     "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
                     "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
                     "default_value": {'function_name': 'Не выбраны', 'value': []},
                 },
                 'M': {
-                    "title": "Количество интервалов M",
                     "type": "slider",
+                    "title": "Количество интервалов M",
                     "min": 2,
                     "max": 5000,
                     "step": 1,

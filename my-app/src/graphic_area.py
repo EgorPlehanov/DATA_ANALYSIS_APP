@@ -247,14 +247,13 @@ class GraphicArea(Row):
         # Добавляем в список для блоков функций и результатов (данные/обработка/анализ)
         list_functions.append(function_card)
         list_results.append(function_card.get_result_view())
-
         # Добавляем параметры функции в список
         self.list_function_parameters.append(function_card.get_parameters())
         
+        self.update_list_parametrs()
         self.update()
 
         self.debug_print('добавлена функция: ', function_card)   #TEST TEST TEST TEST
-        self.update_list_parametrs()
 
 
     def delete_function(self, e) -> None:
@@ -289,10 +288,10 @@ class GraphicArea(Row):
             case 'analitic':
                 self.list_functions_analitic.remove(function_to_remove)
                 self.list_results_analitic.remove(reslut_view_to_remove)
+        self.update_list_parametrs()
         self.update()
 
         self.debug_print('удалена функция: ', function_to_remove)   #TEST TEST TEST TEST
-        self.update_list_parametrs()
 
 
     def change_selected_function(self, e) -> None:
@@ -342,6 +341,17 @@ class GraphicArea(Row):
         self.update()
 
 
+    def update_list_parametrs(self) -> None:
+        '''
+        Обновление списка параметров для функций у которых есть выбор данных из другого блока функций
+        '''
+        for function_parameters in self.list_function_parameters:
+            for parameter in function_parameters.content.controls:
+                if parameter.data in ['dropdown_function_data']:
+                    function_parameters.data.update_parameters_view()
+                    self.update()
+                    break
+
     
 
     def debug_print(self, text, function) -> None:
@@ -360,12 +370,3 @@ class GraphicArea(Row):
         print('list_results_analitic', self.list_results_analitic)
         print()
         print('list_function_parameters', self.list_function_parameters)
-
-
-    def update_list_parametrs(self) -> None:
-        for function_parameters in self.list_function_parameters:
-            for parameter in function_parameters.content.controls:
-                if parameter.data in ['dropdown_function_data']:
-                    function_parameters.data.update_parameters_view()
-                    self.update()
-                    break

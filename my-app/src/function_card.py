@@ -68,87 +68,11 @@ class FunctionCard(UserControl):
 
         # Содержимое карточки функции
         self.ref_card_parameters_text = Ref[Markdown]()
-        self.ref_card_result = Ref[Column]()
         self.ref_card_result_data = Ref[Markdown]()
-        self.ref_card_result_show_button = Ref[IconButton]()
-        self.card_content = Column(
-            expand=True,
-            controls=[
-                Row(
-                    alignment=MainAxisAlignment.SPACE_BETWEEN,
-                    controls=[
-                        Markdown(
-                            extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                            value = f'#### Функция (*id:* ***{self.function_id}***)\n**{self.function.name}** ({", ".join(self.function.parameters_names)})'
-                        ),
-                        IconButton(
-                            icon=icons.DELETE,
-                            data=self,
-                            on_click=self.on_click_delete
-                        )
-                    ]
-                ),
-                Markdown(
-                    animate_size=200,
-                    ref=self.ref_card_parameters_text,
-                    extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                    value=self._get_card_parameters_text()
-                ),
-                Row(
-                    alignment=MainAxisAlignment.SPACE_BETWEEN,
-                    controls=[
-                        Markdown(
-                            value="#### Результат:"
-                        ),
-                        IconButton(
-                            icon=icons.KEYBOARD_ARROW_DOWN,
-                            ref=self.ref_card_result_show_button,
-                            data={
-                                'control': self.ref_card_result,
-                                'button': self.ref_card_result_show_button,
-                            },
-                            on_click=self._change_function_result_visible
-                        ),
-                    ]
-                ),
-                Container(
-                    animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
-                    content=Column(
-                        ref=self.ref_card_result,
-                        visible=False,
-                        controls=[
-                            Markdown(
-                                ref=self.ref_card_result_data,
-                                extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                                value=self._get_card_parameters_result()
-                            ),
-                            Row(
-                                alignment=MainAxisAlignment.END,
-                                controls=[
-                                    IconButton(
-                                        content=Row(
-                                            controls=[
-                                                Text(value="Скрыть результат"),
-                                                Icon(name='KEYBOARD_ARROW_UP')
-                                            ]
-                                        ),
-                                        data={
-                                            'control': self.ref_card_result,
-                                            'button': self.ref_card_result_show_button,
-                                        },
-                                        on_click=self._change_function_result_visible
-                                    ),
-                                ]
-                            )
-                        ]
-                    )
-                )
-            ]
-        )
 
         # Представление карточки функции
         self.card_view = Container(
-            content=self.card_content,
+            content=self._create_card_content(),
             data=self,
             on_click=self.on_change_selected,
             border = border.all(color=colors.BLACK),
@@ -186,6 +110,93 @@ class FunctionCard(UserControl):
         Возвращает представление карточки функции
         '''
         return self.card_view
+
+
+    def _create_card_content(self) -> Column:
+        '''
+        Coздает содержимое карточки функции
+        '''
+        ref_card_result = Ref[Column]()
+        ref_card_result_show_button = Ref[IconButton]()
+        card_title = Row(
+            alignment=MainAxisAlignment.SPACE_BETWEEN,
+            controls=[
+                Markdown(
+                    extension_set=MarkdownExtensionSet.GITHUB_WEB,
+                    value = f'#### Функция (*id:* ***{self.function_id}***)\n**{self.function.name}** ({", ".join(self.function.parameters_names)})'
+                ),
+                IconButton(
+                    icon=icons.DELETE,
+                    data=self,
+                    on_click=self.on_click_delete
+                )
+            ]
+        )
+        card_parameters = Markdown(
+            animate_size=200,
+            ref=self.ref_card_parameters_text,
+            extension_set=MarkdownExtensionSet.GITHUB_WEB,
+            value=self._get_card_parameters_text()
+        )
+        card_result_title = Row(
+            alignment=MainAxisAlignment.SPACE_BETWEEN,
+            controls=[
+                Markdown(
+                    value="#### Результат:"
+                ),
+                IconButton(
+                    icon=icons.KEYBOARD_ARROW_DOWN,
+                    ref=ref_card_result_show_button,
+                    data={
+                        'control': ref_card_result,
+                        'button': ref_card_result_show_button,
+                    },
+                    on_click=self._change_function_result_visible
+                ),
+            ]
+        )
+        card_result_data = Container(
+            animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
+            content=Column(
+                ref=ref_card_result,
+                visible=False,
+                controls=[
+                    Markdown(
+                        ref=self.ref_card_result_data,
+                        extension_set=MarkdownExtensionSet.GITHUB_WEB,
+                        value=self._get_card_parameters_result()
+                    ),
+                    Row(
+                        alignment=MainAxisAlignment.END,
+                        controls=[
+                            IconButton(
+                                content=Row(
+                                    controls=[
+                                        Text(value="Скрыть результат"),
+                                        Icon(name='KEYBOARD_ARROW_UP')
+                                    ]
+                                ),
+                                data={
+                                    'control': ref_card_result,
+                                    'button': ref_card_result_show_button,
+                                },
+                                on_click=self._change_function_result_visible
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+        card_content = Column(
+            expand=True,
+            controls=[
+                card_title,
+                card_parameters,
+                card_result_title,
+                card_result_data
+            ]
+        )
+        return card_content
 
 
     def change_selected(self, e) -> None:

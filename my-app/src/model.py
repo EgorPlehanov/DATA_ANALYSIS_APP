@@ -184,7 +184,6 @@ class Model:
         :param N2: Конечный индекс интервала
         :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
-        print('shift, data:', data)
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
 

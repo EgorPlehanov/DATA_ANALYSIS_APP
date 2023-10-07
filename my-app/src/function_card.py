@@ -323,6 +323,7 @@ class FunctionCard(UserControl):
                         function_card.function_name_formatted: {
                             'function_name': function_card.function_name_formatted,
                             'value': function_card.function.result
+                            # 'value': function_card
                         }
                         for function_card in function_card_list
                     })

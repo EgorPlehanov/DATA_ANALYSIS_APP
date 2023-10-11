@@ -1,6 +1,9 @@
 import itertools
 from typing import Any
 import pandas as pd
+import sympy as sp
+import ast
+import re
 import flet as ft
 from flet import (
     AnimationCurve,
@@ -40,7 +43,8 @@ from flet import (
     dropdown,
     icons,
     margin,
-    padding
+    padding,
+    TextField,
 )
 from function import Function
 
@@ -329,7 +333,6 @@ class FunctionCard(UserControl):
                     options.update({
                         function_card.function_name_formatted: {
                             'function_name': function_card.function_name_formatted,
-                            # 'value': function_card.function.result
                             'value': function_card
                         }
                         for function_card in function_card_list
@@ -403,10 +406,28 @@ class FunctionCard(UserControl):
                 case 'switch':
                     param_editor = Switch(
                         label=param.get('title'),
+                        label_position=LabelPosition.LEFT,
                         value=current_parameters[param_name],
                         data={'param_name': param_name},
-                        label_position=LabelPosition.LEFT,
                         on_change=self._on_change_switch_value,
+                    )
+                case 'text_field':
+                    param_editor = TextField(
+                        label=param.get('label', ''),
+                        prefix_text=param.get('prefix_text', ''),
+                        hint_text=param.get('hint_text', ''),
+                        hint_style=ft.TextStyle(italic=True),
+                        helper_text=param.get('helper_text', ''),
+                        dense=True,
+                        autocorrect=param.get('autocorrect', False),
+                        value=current_parameters[param_name],
+                        data={
+                            'param_name': param_name,
+                            'text_type': param.get('text_type', ''),
+                        },
+                        on_change=self._is_text_field_value_valid,
+                        on_blur=self._on_change_text_field_value,
+                        on_submit=self._on_change_text_field_value,
                     )
                 case 'file_picker':
                     param_editor = Column(
@@ -493,6 +514,47 @@ class FunctionCard(UserControl):
         switch_value = e.control.value
         param_name = e.control.data.get('param_name')
         self.function.set_parameter_value(param_name, switch_value)
+
+        self.update_function_card()
+
+
+    def _is_text_field_value_valid(self, e) -> None:
+        '''
+        Проверка валидности значения текстового поля
+        '''
+        text_type = e.control.data.get('text_type')
+        text_field_value = e.control.value
+        
+        error_message = ''
+        match text_type:
+            case 'function':
+                if text_field_value:
+                    if not re.match(f"^[a-z0-9+\-*/(). ]*$", text_field_value):
+                        error_message = f"Ошибка: Недопустимые символы в функции"
+                    else:
+                        try:
+                            ast.parse(text_field_value)
+                            sp.sympify(text_field_value, evaluate=False)
+                            sp.parse_expr(text_field_value)
+                        except Exception as exeption:
+                            error_message = f"Ошибка: {exeption}"
+            case 'number':
+                if not text_field_value.isnumeric():
+                    error_message = f"Неверный формат числа"
+
+        e.control.error_text = error_message
+        e.control.update()
+
+
+    def _on_change_text_field_value(self, e) -> None:
+        '''
+        Обновляет значение параметра текстового поля в экземпляре класса Function
+        '''
+        if e.control.error_text:
+            return
+        text_field_value = e.control.value
+        param_name = e.control.data.get('param_name')
+        self.function.set_parameter_value(param_name, text_field_value)
 
         self.update_function_card()
 

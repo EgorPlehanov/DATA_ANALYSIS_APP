@@ -1,4 +1,5 @@
 import numpy as np
+import sympy as sp
 import pandas as pd
 from pandas import (
     DataFrame
@@ -171,6 +172,31 @@ class Model:
         return Model.get_result_dict(
             data=combined_df,
             type=' -> '.join(type_list),
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
+    
+
+    def custom_function(expression, N, step, show_table_data=False) -> list:
+        print('custom_function custom_function custom_function custom_function custom_function')
+
+        if not expression:
+            return Model.get_result_dict(error_message="Не задана расчетная функция", in_list=True)
+        
+        x = sp.symbols('x')
+
+        math_expression = sp.sympify(expression)
+        function = sp.lambdify(x, math_expression, "numpy")
+
+        x_values = np.arange(0, N * step, step)
+        y_values = [function(x) for x in x_values]
+
+        data = pd.DataFrame({'x': x_values, 'y': y_values})
+
+        return Model.get_result_dict(
+            data=data,
+            type='custom_function',
             view_chart=True,
             view_table_horizontal=show_table_data,
             in_list=True,
@@ -454,7 +480,7 @@ class Model:
                 },
                 "a": {
                     "type": "slider",
-                    "title": "Параметр a",
+                    "title": "Параметр (a)",
                     "min": 0.01,
                     "max": 5.0,
                     "step": 0.01,
@@ -462,7 +488,7 @@ class Model:
                 },
                 "b": {
                     "type": "slider",
-                    "title": "Параметр b",
+                    "title": "Параметр (b)",
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
@@ -470,7 +496,7 @@ class Model:
                 },
                 "step": {
                     "type": "slider",
-                    "title": "Интервал Δ",
+                    "title": "Шаг по оси x (step)",
                     "min": 1,
                     "max": 10,
                     "step": 1,
@@ -478,7 +504,7 @@ class Model:
                 },
                 "N": {
                     "type": "slider",
-                    "title": "Длина данных N",
+                    "title": "Длина данных (N)",
                     "min": 100,
                     "max": 5000,
                     "step": 100,
@@ -534,7 +560,7 @@ class Model:
                 },
                 "b": {
                     "type": "slider",
-                    "title": "Параметр b",
+                    "title": "Параметр (b)",
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
@@ -542,7 +568,7 @@ class Model:
                 },
                 "step": {
                     "type": "slider",
-                    "title": "Интервал Δ",
+                    "title": "Шаг по оси x (step)",
                     "min": 1,
                     "max": 15,
                     "step": 1,
@@ -550,7 +576,7 @@ class Model:
                 },
                 "N": {
                     "type": "slider",
-                    "title": "Длина данных N",
+                    "title": "Длина данных (N)",
                     "min": 100,
                     "max": 5000,
                     "step": 100,
@@ -598,7 +624,7 @@ class Model:
                 },
                 "a": {
                     "type": "slider",
-                    "title": "Параметр a",
+                    "title": "Параметр (a)",
                     "min": 0.01,
                     "max": 10.0,
                     "step": 0.01,
@@ -606,7 +632,7 @@ class Model:
                 },
                 "b": {
                     "type": "slider",
-                    "title": "Параметр b",
+                    "title": "Параметр (b)",
                     "min": 0.1,
                     "max": 10.0,
                     "step": 0.1,
@@ -614,7 +640,7 @@ class Model:
                 },
                 "step": {
                     "type": "slider",
-                    "title": "Интервал Δ",
+                    "title": "Шаг по оси x (step)",
                     "min": 1,
                     "max": 15,
                     "step": 1,
@@ -622,11 +648,49 @@ class Model:
                 },
                 "N": {
                     "type": "slider",
-                    "title": "Длина данных N",
+                    "title": "Длина данных (N)",
                     "min": 100,
                     "max": 5000,
                     "step": 100,
                     "default_value": 600,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
+            }
+        },
+
+        'custom_function': {
+            'function': custom_function,
+            'type': 'data',
+            'name': 'Задать свою функцию',
+            'parameters': {
+                'expression': {
+                    'type': 'text_field',
+                    'text_type': 'function',
+                    'label': 'Функция',
+                    'prefix_text': 'y = ',
+                    'hint_text': 'например: 1 + sin(x**2)',
+                    'helper_text': 'Функция должна содержать только аргумент x',
+                    'default_value': 'x',
+                },
+                "N": {
+                    "type": "slider",
+                    "title": "Длина данных (N)",
+                    "min": 100,
+                    "max": 5000,
+                    "step": 100,
+                    "default_value": 600,
+                },
+                "step": {
+                    "type": "slider",
+                    "title": "Шаг по оси x (step)",
+                    "min": 0.1,
+                    "max": 10,
+                    "step": 0.1,
+                    "default_value": 1,
                 },
                 'show_table_data': {
                     "type": "switch",
@@ -669,7 +733,7 @@ class Model:
                 },
                 'N': {
                     "type": "slider",
-                    "title": "Длина данных N",
+                    "title": "Длина данных (N)",
                     "min": 10,
                     "max": 5000,
                     "step": 10,
@@ -677,7 +741,7 @@ class Model:
                 },
                 'R': {
                     "type": "slider",
-                    "title": "Параметр диапозона R",
+                    "title": "Параметр диапозона (R)",
                     "min": 0.1,
                     "max": 1000.0,
                     "step": 0.1,
@@ -685,7 +749,7 @@ class Model:
                 },
                 'delta': {
                     "type": "slider",
-                    "title": "Интервал Δ",
+                    "title": "Шаг по оси x (delta)",
                     "min": 1,
                     "max": 15,
                     "step": 1,
@@ -717,7 +781,7 @@ class Model:
                 },
                 'N': {
                     "type": "slider",
-                    "title": "Длина данных N",
+                    "title": "Длина данных (N)",
                     "min": 10,
                     "max": 5000,
                     "step": 10,
@@ -725,7 +789,7 @@ class Model:
                 },
                 'R': {
                     "type": "slider",
-                    "title": "Параметр диапозона R",
+                    "title": "Параметр диапозона (R)",
                     "min": 0.1,
                     "max": 1000.0,
                     "step": 0.1,
@@ -733,7 +797,7 @@ class Model:
                 },
                 'delta': {
                     "type": "slider",
-                    "title": "Интервал Δ",
+                    "title": "Шаг по оси x (delta)",
                     "min": 1,
                     "max": 15,
                     "step": 1,
@@ -760,7 +824,7 @@ class Model:
                 },
                 'C': {
                     "type": "slider",
-                    "title": "Cмещение данных C",
+                    "title": "Cмещение данных (C)",
                     "min": -1000,
                     "max": 1000,
                     "step": 0.1,
@@ -768,7 +832,7 @@ class Model:
                 },
                 'N1': {
                     "type": "slider",
-                    "title": "Cмещение от N1",
+                    "title": "Cмещение от (N1)",
                     "min": 0,
                     "max": 5000,
                     "step": 1,
@@ -776,7 +840,7 @@ class Model:
                 },
                 'N2': {
                     "type": "slider",
-                    "title": "Cмещение до N2",
+                    "title": "Cмещение до (N2)",
                     "min": 0,
                     "max": 5000,
                     "step": 1,
@@ -797,7 +861,7 @@ class Model:
             'parameters': {
                 'N': {
                     "type": "slider",
-                    "title": "Длина данных N",
+                    "title": "Длина данных (N)",
                     "min": 10,
                     "max": 10000,
                     "step": 10,
@@ -805,7 +869,7 @@ class Model:
                 },
                 'M': {
                     "type": "slider",
-                    "title": "Количество выбросов M",
+                    "title": "Количество выбросов (M)",
                     "min": 1,
                     "max": 100,
                     "step": 1,
@@ -813,7 +877,7 @@ class Model:
                 },
                 'R': {
                     "type": "slider",
-                    "title": "Опорное значение R",
+                    "title": "Опорное значение (R)",
                     "min": 1,
                     "max": 10000,
                     "step": 1,
@@ -821,7 +885,7 @@ class Model:
                 },
                 'Rs': {
                     "type": "slider",
-                    "title": "Длина данных Rs",
+                    "title": "Длина данных (Rs)",
                     "min": 1,
                     "max": 1000,
                     "step": 1,
@@ -865,7 +929,7 @@ class Model:
                 },
                 'M': {
                     "type": "slider",
-                    "title": "Количество интервалов M",
+                    "title": "Количество интервалов (M)",
                     "min": 2,
                     "max": 1000,
                     "step": 1,

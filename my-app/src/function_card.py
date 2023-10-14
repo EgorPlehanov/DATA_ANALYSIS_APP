@@ -45,6 +45,8 @@ from flet import (
     margin,
     padding,
     TextField,
+    FilePicker,
+    FilePickerResultEvent,
 )
 from function import Function
 
@@ -91,14 +93,15 @@ class FunctionCard(UserControl):
         # Представление списка параметров
         self.ref_parameters_view = Ref[Column]()
         self.parameters_view = Container(
-            visible=False,
-            data=self,
-            padding=10,
             content=Column(
                 controls=self._get_parameters_view_list(),
                 ref=self.ref_parameters_view,
                 tight=True,
-            )
+            ),
+            visible=False,
+            data=self,
+            padding=10,
+            width=350,
         )
 
         # Представление результатов функции
@@ -109,7 +112,8 @@ class FunctionCard(UserControl):
             data=self,
             border_radius=10,
             bgcolor=colors.BLACK26,
-            padding=padding.only(left=5, top=10, right=20, bottom=10),
+            # padding=padding.only(left=5, top=10, right=20, bottom=10),
+            padding=padding.only(left=10, top=10, right=20, bottom=10),
         )
         
 
@@ -273,11 +277,13 @@ class FunctionCard(UserControl):
         self.ref_card_parameters_text.current.value = self._get_card_parameters_text()
         self.ref_card_result_data.current.value = self._get_card_parameters_result()
 
+        self.update()
+        self.graphic_area.update()
+
         for dependent_function in self.list_dependent_functions:
             dependent_function.update_function_card(update_parameters=True)
 
-        self.update()
-        self.graphic_area.update()
+        
 
 
     def get_parameters(self) -> Container:
@@ -322,6 +328,7 @@ class FunctionCard(UserControl):
                         data={'param_name': param_name},
                         on_change=self._on_change_dropdown_value
                     )
+
                 case 'dropdown_function_data':
                     function_card_list = []
                     if self.function.type in ['edit', 'analitic']:
@@ -339,12 +346,23 @@ class FunctionCard(UserControl):
                     })
                     
                     dropdown_value = 'Не выбраны'
+                    value_to_print = 'Не выбраны []'
+
+                    current_value = current_parameters[param_name]
                     # Проверка не удаленно ли текущее значение из списка
-                    if current_parameters[param_name] in options.values():
-                        dropdown_value = current_parameters[param_name].get('function_name')
-                    else:
-                        self.function.set_parameter_value(param_name, options[dropdown_value])
-                        self.update_function_card()
+                    if current_value in options.values():
+                        dropdown_value = current_value.get('function_name')
+                        function_card = current_value.get('value')
+
+                        if isinstance(function_card, FunctionCard):
+                            function_card = function_card.function.result
+                        value_to_print = f"{dropdown_value}: {[elem.get('type') for elem in function_card]}"
+                    # else:
+                    #     # Установка дефолтного значения
+                    #     self.function.set_parameter_value(param_name, options[dropdown_value], 'Не выбраны []')
+                        # self.update_function_card()
+                    self.function.set_parameter_value(param_name, options[dropdown_value], value_to_print)
+                    
 
                     param_editor = Dropdown(
                         dense=True,
@@ -360,6 +378,7 @@ class FunctionCard(UserControl):
                         },
                         on_change=self._on_change_dropdown_function_value,
                     )
+
                 case "slider":                    
                     ref_slider_text = Ref[Text]()
                     slider_divisions = int((param.get('max', 0) - param.get('min', 0)) / param.get('step', 1))
@@ -384,6 +403,7 @@ class FunctionCard(UserControl):
                             )
                         ],
                     )
+
                 case 'checkbox':
                     checkboxes = param.get('checkboxes', [])
                     ref_checkboxes = [Ref[Checkbox]() for _ in range(len(checkboxes))]
@@ -403,14 +423,22 @@ class FunctionCard(UserControl):
                             for idx, checkbox in enumerate(checkboxes)
                         ]
                     )
+
                 case 'switch':
-                    param_editor = Switch(
-                        label=param.get('title'),
-                        label_position=LabelPosition.LEFT,
-                        value=current_parameters[param_name],
-                        data={'param_name': param_name},
-                        on_change=self._on_change_switch_value,
+                    param_editor = Row(
+                        controls=[
+                            Text(value=param.get('title')),
+                            Switch(
+                                label_position=LabelPosition.LEFT,
+                                value=current_parameters[param_name],
+                                data={'param_name': param_name},
+                                on_change=self._on_change_switch_value,
+                            )
+                        ],
+                        expand=True,
+                        alignment=MainAxisAlignment.SPACE_BETWEEN,
                     )
+                    
                 case 'text_field':
                     param_editor = TextField(
                         label=param.get('label', ''),
@@ -429,17 +457,59 @@ class FunctionCard(UserControl):
                         on_blur=self._on_change_text_field_value,
                         on_submit=self._on_change_text_field_value,
                     )
+
                 case 'file_picker':
-                    param_editor = Column(
+                    ref_files = Ref[Column]()
+                    pick_files_dialog = FilePicker(
+                        data={
+                            'param_name': param_name,
+                            'ref_files': ref_files
+                        },
+                        on_result=self.on_file_picker_result,
+                    )
+                    self.page.overlay.append(pick_files_dialog)
+                    self.page.update()
+
+                    pick_files_params = param.get('pick_files_parameters', {})
+                    param_editor = Row(
                         controls=[
-                            Text(value=f'{param.get("title")}',),
-                            ft.FilePicker(on_upload=None)
-                        ]
+                            Column(
+                                controls=[
+                                    Text(value=param.get('title', '')),
+                                    Column(
+                                        controls=[
+                                            Text(f"{file['name']} ({self._convert_size(file['size'])})")
+                                            for file in current_parameters.get(param_name, [])
+                                        ],
+                                        ref=ref_files,
+                                    ),
+                                    ft.ElevatedButton(
+                                        text=param.get('button_text', ''),
+                                        icon=icons.UPLOAD_FILE,
+                                        on_click=lambda _: pick_files_dialog.pick_files(
+                                            dialog_title = pick_files_params.get('dialog_title'),
+                                            initial_directory = pick_files_params.get('initial_directory'),
+                                            file_type = pick_files_params.get('file_type', ft.FilePickerFileType.ANY)
+                                                if param.get('allowed_extensions') is None else ft.FilePickerFileType.CUSTOM,
+                                            allowed_extensions = pick_files_params.get('allowed_extensions'),
+                                            allow_multiple = pick_files_params.get('allow_multiple'),
+                                        ),
+                                    ),
+                                ]
+                            )
+                        ],
+                        expand=True,
                     )
 
             # Добавление представления параметра в список
             parameters_view_list.append(
-                Container(content=param_editor, data=param_type)
+                Container(
+                    content=param_editor, data=param_type,
+                    padding=10,
+                    border_radius=10,
+                    border=border.all(1, colors.with_opacity(0.05, colors.SECONDARY)),
+                    bgcolor=colors.BLACK12
+                )
             )
         return parameters_view_list
 
@@ -456,7 +526,7 @@ class FunctionCard(UserControl):
 
         slider_title_control.value = f"{slider_title_text}: {param_value}"
         self.function.set_parameter_value(param_name, param_value)
-        
+
         self.update_function_card()
 
 
@@ -478,13 +548,17 @@ class FunctionCard(UserControl):
         param_name = e.control.data.get('param_name')
         dropdown_value = e.control.value
         param_value = e.control.data.get('data').get(dropdown_value)
-        self.function.set_parameter_value(param_name, param_value)
 
         function_card = param_value.get('value')
         if isinstance(function_card, FunctionCard):
             function_card.list_dependent_functions.append(self)
             self.provider_function = function_card
 
+            function_card = function_card.function.result
+
+        self.function.set_parameter_value(
+            param_name, param_value, f"{param_value.get('function_name')}: {[elem.get('type') for elem in function_card]}"
+        )
         self.update_function_card()
 
     
@@ -497,13 +571,12 @@ class FunctionCard(UserControl):
         checkbox_value = e.control.value
         param_name = e.control.data.get('param_name')
 
-        param_current_value = self.function.get_parameter_value(param_name)
+        param_current_value = self.function.get_parameter_value(param_name).get('value', [])
         if checkbox_value:
             param_current_value.append(checkbox_key)
         else:
             param_current_value.remove(checkbox_key)
         self.function.set_parameter_value(param_name, param_current_value)
-
         self.update_function_card()
     
 
@@ -529,7 +602,7 @@ class FunctionCard(UserControl):
         match text_type:
             case 'function':
                 if text_field_value:
-                    if not re.match(f"^[a-z0-9+\-*/(). ]*$", text_field_value):
+                    if not re.match(f"^[a-z0-9+\-*/()., ]*$", text_field_value):
                         error_message = f"Ошибка: Недопустимые символы в функции"
                     else:
                         try:
@@ -554,32 +627,64 @@ class FunctionCard(UserControl):
             return
         text_field_value = e.control.value
         param_name = e.control.data.get('param_name')
-        self.function.set_parameter_value(param_name, text_field_value)
-
+        self.function.set_parameter_value(
+            param_name, text_field_value,
+            text_field_value.replace('**', '\*\*') if text_field_value else 'Нет значения'
+        )
         self.update_function_card()
+
+
+    def _convert_size(self, size):
+        '''
+        Конвертирует размер в байтах в строку
+        '''
+        if not size:
+            return "0 байт"
+        if size < 1024:
+            return f"{size} байт"
+        elif size < 1024 * 1024:
+            return f"{size / 1024:.2f} КБ"
+        elif size < 1024 * 1024 * 1024:
+            return f"{size / (1024 * 1024):.2f} МБ"
+        else:
+            return f"{size / (1024 * 1024 * 1024):.2f} ГБ"
+
+
+    def on_file_picker_result(self, e: ft.FilePickerResultEvent):
+        '''
+        Обновляет список файлов в параметре экземпляра класса Function
+        '''
+        files_list = []
+        if e.files is not None:
+            for file in e.files:
+                files_list.append({
+                    'name': file.name,
+                    'path': file.path,
+                    'size': file.size,
+                })
+
+            files = e.control.data.get('ref_files').current
+            files.controls = [
+                Text(f"{file['name']} ({self._convert_size(file['size'])})")
+                for file in files_list
+            ]
+
+            param_name = e.control.data.get('param_name')
+            self.function.set_parameter_value(
+                param_name, files_list, [file['name'] for file in files_list]
+            )
+            self.update_function_card()
 
 
     def _get_card_parameters_text(self) -> str:
         '''
         Возвращает текст с параметрами для карточки функции
         '''
-        parameters = self.function.get_parameters_dict()
+        parameters = self.function.get_parameters_dict(to_print=True)
+
         formatted_parameters = []
-
         for param, item in parameters.items():
-            
-            if isinstance(item, dict):
-                # Отображение для параметра функция из другого блока
-                elements_list = item.get('value', [])
-
-                if isinstance(elements_list, FunctionCard):
-                    elements_list = elements_list.function.result
-
-                elements = [elem.get('type') for elem in elements_list]
-                formatted_item = f"*{param}*:\u00A0**{item.get('function_name')}**: ***{elements}***"
-            else:
-                formatted_item = f"*{param}*:\u00A0**{item}**"  # \u00A0 - Unicode символ неразмеренного пробела
-
+            formatted_item = f"*{param}*:\u00A0**{item}**"
             formatted_parameters.append(formatted_item)
 
         parameters_text = "; ".join(formatted_parameters)
@@ -674,7 +779,7 @@ class FunctionCard(UserControl):
             element_controls.append(
                 self._get_result_error_message(error_message)
             )
-
+        
         view_list = dataframe.get('view')
         if 'chart' in view_list:
             element_controls.append(self._get_function_result_graphic(dataframe, color=color))
@@ -787,12 +892,14 @@ class FunctionCard(UserControl):
             tooltip_bgcolor=colors.with_opacity(0.8, colors.BLACK38),
             expand=True,
         )
-        # chart_view = self._get_dropdown_conteiner_for_control(
-        #     control=chart,
-            # button_name=f"Показать график:{(f' ***{graphic_title.strip()}***')}"
-        # )
-        # return chart_view
-        return Row(controls=[chart])
+
+        chart_view = Row(controls=[chart])
+        if dataframe.get('main_view') != 'chart':
+            chart_view = self._get_dropdown_conteiner_for_control(
+                control=chart,
+                button_name=f"Показать график:{(f' ***{graphic_title.strip()}***')}"
+            )
+        return chart_view
 
 
     def _get_datatable_data(self, dataframe) -> Container:
@@ -859,10 +966,13 @@ class FunctionCard(UserControl):
         #     value=transposed_df.to_markdown(),
         #     extension_set=MarkdownExtensionSet.GITHUB_WEB,
         # )
-        datatable_viwe = self._get_dropdown_conteiner_for_control(
-            control=datatable,
-            button_name=f"Показать таблицу данных:{(f' ***{df_name.strip()}***')}"
-        )
+
+        datatable_viwe = Row(controls=[datatable])
+        if dataframe.get('main_view') != 'table_data':
+            datatable_viwe = self._get_dropdown_conteiner_for_control(
+                control=datatable,
+                button_name=f"Показать таблицу данных:{(f' ***{df_name.strip()}***')}"
+            )
         return datatable_viwe
     
 
@@ -888,10 +998,12 @@ class FunctionCard(UserControl):
             expand=True,
         )
 
-        datatable_viwe = self._get_dropdown_conteiner_for_control(
-            control=datatable,
-            button_name=f"Показать таблицу статистических параметров:{(f' ***{df_name.strip()}***')}"
-        )
+        datatable_viwe = Row(controls=[datatable])
+        if dataframe.get('main_view') != 'table_statistics':
+            datatable_viwe = self._get_dropdown_conteiner_for_control(
+                control=datatable,
+                button_name=f"Показать таблицу статистических параметров:{(f' ***{df_name.strip()}***')}"
+            )
         return datatable_viwe
     
 
@@ -939,7 +1051,7 @@ class FunctionCard(UserControl):
             ),
             animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
             border_radius=10,
-            margin=margin.only(left=10),
+            # margin=margin.only(left=10),
         )
         return dropdown_conteiner
 
@@ -972,7 +1084,6 @@ class FunctionCard(UserControl):
                     )
                 ]
             )
-            
         self.graphic_area.update()
 
 

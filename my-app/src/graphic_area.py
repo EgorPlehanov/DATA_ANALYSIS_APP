@@ -345,32 +345,16 @@ class GraphicArea(Row):
         '''
         Обновление списка параметров для функций у которых есть выбор данных из другого блока функций
         '''
+
         if isinstance(list_dependent_functions, list) and len(list_dependent_functions) > 0:
+            # Вызывается при удалении функции, обновляет зависимые функции
             for dependent_function in list_dependent_functions:
                 dependent_function.update_function_card(update_parameters=True)
         else:
+            # Вызывается при добавлении новых функций
             for function_parameters in self.list_function_parameters:
                 for parameter in function_parameters.content.controls:
                     if parameter.data in ['dropdown_function_data']:
                         function_parameters.data.update_function_card(update_parameters=True)
                         self.update()
                         break
-
-    
-
-    def debug_print(self, text, function) -> None:
-        return
-        print(text, function.function_id)
-        print()
-        print('function.get_parameters(): ', dir(function.get_parameters()))
-        print()
-        print('list_functions_data', self.list_functions_data)
-        print('list_results_data', self.list_results_data)
-        print()
-        print('list_functions_edit', self.list_functions_edit)
-        print('list_results_edit', self.list_results_edit)
-        print()
-        print('list_functions_analitic', self.list_functions_analitic)
-        print('list_results_analitic', self.list_results_analitic)
-        print()
-        print('list_function_parameters', self.list_function_parameters)

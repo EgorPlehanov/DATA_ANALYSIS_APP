@@ -56,6 +56,7 @@ class Model:
             view_chart: bool = None,
             view_table_horizontal: bool = None,
             view_table_vertical: bool = None,
+            main_view: str = None,
             in_list: bool = False
         ) -> dict:
         result_dict = {}
@@ -81,6 +82,11 @@ class Model:
         if view_table_vertical:
             view_list.append('table_statistics')
         result_dict['view'] = view_list
+
+        if main_view and main_view in view_list:
+            result_dict['main_view'] = main_view
+        elif len(view_list) > 0:
+            result_dict['main_view'] = view_list[0]
 
         if in_list:
             return [result_dict]
@@ -179,7 +185,6 @@ class Model:
     
 
     def custom_function(expression, N, step, show_table_data=False) -> list:
-        print('custom_function custom_function custom_function custom_function custom_function')
 
         if not expression:
             return Model.get_result_dict(error_message="Не задана расчетная функция", in_list=True)
@@ -203,8 +208,9 @@ class Model:
         )
 
 
-    def data_download(input_data):
-        pass
+    def data_download(input_data, show_table_data=False) -> list:
+        print(input_data)
+        return Model.get_result_dict(in_list=True)
     
     # ========== EDIT FUNCTIONS ==========
 
@@ -707,9 +713,22 @@ class Model:
             'parameters': {
                 'input_data': {
                     "type": "file_picker",
-                    "title": "Выбор файла данных",
-                    "default_value": None,
-                }
+                    "title": "Набор данных",
+                    'button_text': 'Выбрать набор данных',
+                    'pick_files_parameters': {
+                        'dialog_title': 'Выбор набора данных',
+                        'initial_directory': None,
+                        'file_type': None,
+                        'allowed_extensions': ['csv'],
+                        'allow_multiple': True,
+                    },
+                    "default_value": [],
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
             }
         },
 
@@ -821,6 +840,7 @@ class Model:
                     "title": "Выбор набора данных",
                     "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
                     "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
                 },
                 'C': {
                     "type": "slider",
@@ -912,6 +932,7 @@ class Model:
                     "title": "Выбор набора данных",
                     "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
                     "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
                 },
             }
         },
@@ -926,6 +947,7 @@ class Model:
                     "title": "Выбор набора данных",
                     "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
                     "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
                 },
                 'M': {
                     "type": "slider",

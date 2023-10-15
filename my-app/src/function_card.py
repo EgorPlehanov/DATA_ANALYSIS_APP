@@ -112,8 +112,8 @@ class FunctionCard(UserControl):
             data=self,
             border_radius=10,
             bgcolor=colors.BLACK26,
-            # padding=padding.only(left=5, top=10, right=20, bottom=10),
             padding=padding.only(left=10, top=10, right=20, bottom=10),
+            key=self.function_id,
         )
         
 
@@ -225,13 +225,12 @@ class FunctionCard(UserControl):
         if self.selected:
             self.card_view.border = border.all(color=colors.BLACK)
             self.card_view.bgcolor = colors.BLACK54
-            self.parameters_view.visible = False
             self.result_view.border = None
+            self.parameters_view.visible = False
         else:
             self.card_view.border = border.all(color=colors.BLUE)
             self.card_view.bgcolor = colors.BLACK26
             self.result_view.border = border.all(color=colors.BLUE)
-            self.result_view.animate
             self.parameters_view.visible = True
         self.selected = not self.selected
         self.update()
@@ -794,10 +793,21 @@ class FunctionCard(UserControl):
             extra_data_control = self._get_result_element_view(extra_data, color=color)
             extra_data_view = self._get_dropdown_conteiner_for_control(
                 control=extra_data_control,
-                button_name=f"Показать исходные данные:{(f' ***{extra_data_name.strip()}***')}",
+                button_name=f"Показать дополнительные данные:{(f' ***{extra_data_name.strip()}***')}",
                 is_open=False,
             )
             element_controls.append(extra_data_view)
+
+        initial_data = dataframe.get('initial_data')
+        if initial_data:
+            initial_data_name = initial_data.get('type')
+            initial_data_control = self._get_result_element_view(initial_data, color=color)
+            initial_data_view = self._get_dropdown_conteiner_for_control(
+                control=initial_data_control,
+                button_name=f"Показать исходные данные:{(f' ***{initial_data_name.strip()}***')}",
+                is_open=False,
+            )
+            element_controls.append(initial_data_view)
 
         return Column(expand=True, controls=element_controls)
     

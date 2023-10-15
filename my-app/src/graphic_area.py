@@ -97,6 +97,10 @@ class GraphicArea(Row):
         self.ref_result_view_edit = Ref[Column]()
         self.ref_result_view_analitic = Ref[Column]()
 
+        self.ref_tab_count_indiator_data = Ref[Container]()
+        self.ref_tab_count_indiator_edit = Ref[Container]()
+        self.ref_tab_count_indiator_analitic = Ref[Container]()
+
         # Область вывода результатов с вкладками (данные/обработка/анализ)
         self.results_view = Container(
             expand=True,
@@ -110,18 +114,21 @@ class GraphicArea(Row):
                         'Данные',
                         self.list_results_data,
                         self.ref_result_view_data,
+                        self.ref_tab_count_indiator_data
                     ),
                     self._get_result_view_tab(
                         'Обработка',
                         self.list_results_edit,
                         self.ref_result_view_edit,
+                        self.ref_tab_count_indiator_edit
                     ),
                     self._get_result_view_tab(
                         'Анализ',
                         self.list_results_analitic,
                         self.ref_result_view_analitic,
+                        self.ref_tab_count_indiator_analitic
                     ),
-                ]
+                ],
             ),
         )
 
@@ -196,12 +203,28 @@ class GraphicArea(Row):
             tab_name: str,
             list_results: List,
             ref_tab_result_view: Ref[Column],
+            ref_tab_count_indiator: Ref[ft.Text]
         ) -> Tab:
         '''
         Функциия создания вкладки результатов
         '''
         results_view_tab =  Tab(
             text=tab_name,
+            tab_content=Row(
+                controls=[
+                    ft.Text(tab_name),
+                    Container(
+                        content=ft.Text('0', size=12),
+                        border=border.all(1, colors.with_opacity(0.1, ft.colors.ON_SURFACE)),
+                        border_radius=10,
+                        bgcolor=colors.with_opacity(0.05, ft.colors.ON_SURFACE),
+                        padding=ft.padding.only(left=10, right=10, top=5, bottom=5),
+                        visible=False,
+                        ref=ref_tab_count_indiator
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
             content=Container(
                 expand=False,
                 padding=10,
@@ -214,6 +237,21 @@ class GraphicArea(Row):
             ),
         )
         return results_view_tab
+    
+
+    def on_change_result_view_tab_count(self, tab_name: str) -> None:
+        match tab_name:
+            case 'data':
+                conntrol = self.ref_tab_count_indiator_data.current
+                value = len(self.list_results_data)
+            case 'edit':
+                conntrol = self.ref_tab_count_indiator_edit.current
+                value = len(self.list_results_edit)
+            case 'analitic':
+                conntrol = self.ref_tab_count_indiator_analitic.current
+                value = len(self.list_results_analitic)
+        conntrol.content.value = str(value)
+        conntrol.visible = False if value == 0 else True
 
 
     def change_selected_function(self, e) -> None:
@@ -251,15 +289,16 @@ class GraphicArea(Row):
                 case 'analitic':
                     self.ref_result_view.current.selected_index = 2
                     # scroll_view = self.ref_result_view_analitic.current
-
+            
             # ПРОКРУТКА ДО ЭЛЕМЕНТА В СПИСКЕ РЕЗУЛЬТАТОВ НЕ РАБОТЕТ
             # ПРОКРУТКА СРАБАТЫВАЕТ НА РОДИТЕЛЬСКИЕ ЭЛЕМЕНТЫ И ОКНО ПРОКРУЧИВАЕТСЯ МИМО НУЖНОГО МЕСТА
             # Блокируется auto_scroll=True, но тогда прокрутка всегда идет до конца
-            # scroll_view.scroll_to(
-            #     key=str(clicked_function_card.function_id),
-            #     duration=1000,
-            #     # curve=animation.AnimationCurve.FAST_OUT_SLOWIN
-            # )
+            # if scroll_view is not None:
+            #     scroll_view.scroll_to(
+            #         key=str(clicked_function_card.function_id),
+            #         duration=500,
+            #         # curve=animation.AnimationCurve.FAST_OUT_SLOWIN
+            #     )
         self.update()
 
 
@@ -299,6 +338,7 @@ class GraphicArea(Row):
         # Добавляем параметры функции в список
         self.list_function_parameters.append(function_card.get_parameters())
         
+        self.on_change_result_view_tab_count(function_type)
         self.update_list_parametrs()
         self.update()
 
@@ -337,6 +377,7 @@ class GraphicArea(Row):
                 self.list_functions_analitic.remove(function_to_remove)
                 self.list_results_analitic.remove(reslut_view_to_remove)
 
+        self.on_change_result_view_tab_count(function_to_remove.function_type)
         self.update_list_parametrs(function_to_remove.list_dependent_functions)
         self.update()
 

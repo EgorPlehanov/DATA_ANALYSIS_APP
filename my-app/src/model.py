@@ -56,6 +56,7 @@ class Model:
             data: DataFrame = None,
             type: str = None,
             initial_data: dict = None,
+            extra_data: dict = None,
             error_message: str = None,
             view_chart: bool = None,
             view_table_horizontal: bool = None,
@@ -69,7 +70,10 @@ class Model:
             result_dict['data'] = Model.round_and_clip_dataframe(data)
             
         if initial_data:
-            result_dict['extra_data'] = initial_data
+            result_dict['initial_data'] = initial_data
+
+        if extra_data:
+            result_dict['extra_data'] = extra_data
 
         if type:
             initial_data_type = f" ({initial_data.get('type', '')})" if initial_data else ''
@@ -273,24 +277,56 @@ class Model:
     
     # ========== EDIT FUNCTIONS ==========
 
-    def noise(data, N, R, delta, show_table_data=False) -> list:
-        N = int(N)
+    def generate_noise(N: int, R: float, delta: float) -> DataFrame:
         # Генерация случайного шума в заданном диапазоне [-R, R]
         noise_data = np.random.uniform(-R, R, N)
         # Пересчет данных в заданный диапазон R
         min_val = np.min(noise_data)
         max_val = np.max(noise_data)
         normalized_noise = ((noise_data - min_val) / (max_val - min_val) - 0.5) * 2 * R
+        x = np.arange(0, N * delta, delta)
+        return DataFrame({'x': x, 'y': normalized_noise})
 
-        t = np.arange(0, N * delta, delta)
-        noised_data = pd.DataFrame({'x': t, 'y': normalized_noise})
-        return Model.get_result_dict(
-            data=noised_data,
-            type='noise',
-            view_chart=True,
-            view_table_horizontal=show_table_data,
-            in_list=True,
-        )
+
+    def noise(data, N, R, delta, show_table_data=False) -> list:
+        N = int(N)
+
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return Model.get_result_dict(
+                data=Model.generate_noise(N, R, delta),
+                type='noise',
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+                in_list=True,
+            )
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+
+            N = len(df)
+            
+            noised_df = Model.generate_noise(N, R, delta)
+            noised_data = Model.get_result_dict(
+                data=noised_df,
+                type='noise',
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            )
+
+            data_noised_df = pd.concat([df, noised_df]).groupby('x', as_index=False).sum()
+            result_list.append(Model.get_result_dict(
+                data=data_noised_df,
+                type='noise',
+                initial_data=df_dict,
+                extra_data=noised_data,
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
 
 
     def my_noise(data, N, R, delta, show_table_data=False) -> list:
@@ -358,39 +394,83 @@ class Model:
                 view_table_horizontal=show_table_data,
             ))
         return result_list
-        
 
-    def spikes(N, M, R, Rs, show_table_data=False) -> list:
+
+    def generate_spikes(N: int, M: int, R: float, Rs: float) -> DataFrame:
+        spike_indices = np.random.choice(N, M, replace=False)
+        spike_amplitudes = R + np.random.uniform(-Rs, Rs, M)
+        spike_signs = np.random.choice([-1, 1], M)  # Выбираем случайный знак для выбросов
+        data_values = np.zeros(N)
+        data_values[spike_indices] = spike_signs * spike_amplitudes
+        return DataFrame({'x': np.arange(N), 'y': data_values})
+
+
+    def spikes(data, N, M, R, Rs, show_table_data=False) -> list:
         """
         Генерирует M случайных выбросов (спайков) на интервале [0, N] со случайными амплитудами.
 
+        :param data: Входные данные
         :param N: Длина данных
         :param M: Количество выбросов
         :param R: Опорное значение
         :param Rs: Диапазон варьирования амплитуды
         """
         N, M = int(N), int(M)
-        if N < M:
-            return Model.get_result_dict(error_message=f'Некорректное количество выбросов: M должно быть <= N. M = {M}, N = {N}', in_list=True)
 
-        error_message = ""
-        if M < 0.005 * N or M > 0.01 * N:
-            error_message = f'Некорректное количество выбросов: M должно быть в пределах [{0.005*N}, {0.01*N}]'
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            if N < M:
+                return Model.get_result_dict(error_message=f'Некорректное количество выбросов: M должно быть <= N. M = {M}, N = {N}', in_list=True)
+
+            error_message = None
+            if M < 0.005 * N or M > 0.01 * N:
+                error_message = f'Некорректное количество выбросов: M должно быть в пределах [{round(0.005*N)}, {round(0.01*N)}]'
+            
+            return Model.get_result_dict(
+                data=Model.generate_spikes(N, M, R, Rs),
+                type='spikes',
+                error_message=error_message,
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+                in_list=True,
+            )
         
-        data = np.zeros(N)
-        spike_indices = np.random.choice(N, M, replace=False)
-        spike_amplitudes = R + np.random.uniform(-Rs, Rs, M)
-        spike_signs = np.random.choice([-1, 1], M)  # Выбираем случайный знак для выбросов
-        data[spike_indices] = spike_signs * spike_amplitudes
-        spikes_df = pd.DataFrame({'x': np.arange(N), 'y': data})
-        return Model.get_result_dict(
-            data=spikes_df,
-            type='spikes',
-            error_message=error_message,
-            view_chart=True,
-            view_table_horizontal=show_table_data,
-            in_list=True,
-        )
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+
+            N = len(df)
+            if N < M:
+                result_list.append(Model.get_result_dict(
+                    error_message=f'Некорректное количество выбросов: M должно быть <= N. M = {M}, N = {N}', in_list=True
+                ))
+
+            error_message = None
+            if M < 0.005 * N or M > 0.01 * N:
+                error_message = f'Некорректное количество выбросов: M должно быть в пределах [{round(0.005*N)}, {round(0.01*N)}]'
+            
+            spikes_df = Model.generate_spikes(N, M, R, Rs)
+            spikes_data = Model.get_result_dict(
+                data=spikes_df,
+                type='spikes',
+                error_message=error_message,
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            )
+
+            data_spikes_df = pd.concat([df, spikes_df]).groupby('x', as_index=False).sum()
+            result_list.append(Model.get_result_dict(
+                data=data_spikes_df,
+                type='spikes',
+                initial_data=df_dict,
+                extra_data=spikes_data,
+                error_message=error_message,
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
         
 
     # ========== ANALITIC FUNCTIONS ==========
@@ -799,15 +879,11 @@ class Model:
             'name': 'Случайный шум',
             'parameters': {
                 'data': {
-                    "type": "dropdown",
-                    "title": "Выбор данных",
-                    "options": [
-                        {
-                            "key": None,
-                            "text": "Не выбрана",
-                        },
-                    ],
-                    "default_value": None,
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
                 },
                 'N': {
                     "type": "slider",
@@ -847,15 +923,11 @@ class Model:
             'name': 'Мой случайный шум',
             'parameters': {
                 'data': {
-                    "type": "dropdown",
-                    "title": "Выбор данных",
-                    "options": [
-                        {
-                            "key": None,
-                            "text": "Не выбрана",
-                        },
-                    ],
-                    "default_value": None,
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
                 },
                 'N': {
                     "type": "slider",
@@ -938,6 +1010,13 @@ class Model:
             'type': 'edit',
             'name': 'Одиночные выбросы',
             'parameters': {
+                'data': {
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
+                },
                 'N': {
                     "type": "slider",
                     "title": "Длина данных (N)",

@@ -14,9 +14,9 @@ class Function:
 
         for param_name, param_info in self.parameters_info.items():
             param_value = param_info.get('default_value')
-            value_to_print = param_info.get('default_value_to_print', param_value)
             if isinstance(param_value, (list, dict, set)):
                 param_value = copy.deepcopy(param_value)
+            value_to_print = param_info.get('default_value_to_print', param_value)
             setattr(self, param_name, {'value': param_value, 'value_to_print': value_to_print})
 
         self._calculate()

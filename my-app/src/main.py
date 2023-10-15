@@ -29,37 +29,7 @@ class DataAnalysisApp(UserControl):
         self.page = page
         self.expand = True
 
-        self.appbar = AppBar(
-            leading=Icon(icons.ANALYTICS),
-            leading_width=40,
-            title=Text(
-                value="Data Analysis App",
-                text_align="start"
-            ),
-            center_title=False,
-            bgcolor=colors.SURFACE_VARIANT,
-            actions=[
-                Container(
-                    content=Row(
-                        controls=[
-                            FilledButton(
-                                data="Graphic",
-                                text="График",
-                                icon="add",
-                                on_click=self.open_dlg_modal
-                            ),
-                            FilledButton(
-                                data="Image",
-                                text="Изображение",
-                                icon="add",
-                                on_click=self.open_dlg_modal
-                            ),
-                        ],
-                    ),
-                    margin=10
-                )
-            ],
-        )
+        self.appbar = self.create_appbar()
         self.page.appbar = self.appbar
 
         self.dlg_modal_add_tab = AlertDialog(
@@ -110,12 +80,41 @@ class DataAnalysisApp(UserControl):
         return self.tabs_bar
     
 
+    def create_appbar(self) -> AppBar:
+        '''
+        Создает и возвращает экземпляр класса AppBar.
+        '''
+        appbar_actions = [
+            Container(
+                content=Row(
+                    controls=[
+                        FilledButton(
+                            text="График", icon="add", data="Graphic",
+                            on_click=self.open_dlg_modal
+                        ),
+                        FilledButton(
+                            text="Изображение", icon="add", data="Image",
+                            on_click=self.open_dlg_modal
+                        ),
+                    ],
+                ),
+                margin=10
+            )
+        ]
+        appbar = AppBar(
+            leading=Icon(icons.ANALYTICS),
+            leading_width=40,
+            title=Text(value="Data Analysis App", text_align="start"),
+            center_title=False,
+            bgcolor=colors.SURFACE_VARIANT,
+            actions=appbar_actions,
+        )
+        return appbar
+
+
     def add_tab(self, e) -> None:
         '''
         Добавляет вкладку в список вкладок tabs_bar
-
-        Args:
-            e (Event): Событие клика на кнопку добавления вкладки в диалоговом окне.
         '''
         # Определяем тип вкладки на основе данных из диалогового окна
         tab_type = self.dlg_modal_add_tab.data
@@ -135,7 +134,8 @@ class DataAnalysisApp(UserControl):
         
         # Определяем заголовок вкладки, используя введенное пользователем значение или значение по умолчанию
         tab_title = self.dlg_modal_add_tab.content.value
-        tab_title = tab_title if tab_title else 'Вкладка ' + tab_type
+        if not tab_title:
+            tab_title = 'Вкладка ' + tab_type
         
         # Создаем ссылку на вкладку и создаем объект вкладки
         tab_ref = Ref[Tab]()
@@ -161,9 +161,6 @@ class DataAnalysisApp(UserControl):
     def delete_tab(self, e) -> None:
         '''
         Удаляет вкладку
-
-        Args:
-            e (Event): Событие клика на кнопку удаления вкладки (x).
         '''
         deleted_tab = e.control.data.current
         self.tabs_bar.tabs.remove(deleted_tab)
@@ -173,9 +170,6 @@ class DataAnalysisApp(UserControl):
     def open_dlg_modal(self, e) -> None:
         '''
         Открывает диалоговое окно для добавления вкладки
-
-        Args:
-            e (Event): Событие клика на кнопку добавления вкладки.
         '''
         button_name = e.control.data
         match button_name:
@@ -195,9 +189,6 @@ class DataAnalysisApp(UserControl):
     def close_dlg(self, e) -> None:
         '''
         Закрывает диалоговое окно для добавления вкладки
-
-        Args:
-            e (Event): Событие клика на кнопку закрытия.
         '''
         self.dlg_modal_add_tab.open = False
         self.dlg_modal_add_tab.data = ''

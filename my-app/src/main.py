@@ -13,6 +13,12 @@ from flet import (
     Tabs,
     Tab,
     Icon,
+    colors,
+    AlertDialog,
+    TextButton,
+    MainAxisAlignment,
+    border,
+    Ref,
 )
 from graphic_area import GraphicArea
 
@@ -24,14 +30,14 @@ class DataAnalysisApp(UserControl):
         self.expand = True
 
         self.appbar = AppBar(
-            leading=ft.Icon(ft.icons.ANALYTICS),
+            leading=Icon(icons.ANALYTICS),
             leading_width=40,
-            title=ft.Text(
+            title=Text(
                 value="Data Analysis App",
                 text_align="start"
             ),
             center_title=False,
-            bgcolor=ft.colors.SURFACE_VARIANT,
+            bgcolor=colors.SURFACE_VARIANT,
             actions=[
                 Container(
                     content=Row(
@@ -56,15 +62,15 @@ class DataAnalysisApp(UserControl):
         )
         self.page.appbar = self.appbar
 
-        self.dlg_modal_add_tab = ft.AlertDialog(
+        self.dlg_modal_add_tab = AlertDialog(
             modal=True,
-            title=ft.Text("Добавить вкладку"),
+            title=Text("Добавить вкладку"),
             content=TextField(label="Название вкладки", autofocus=True, on_submit=self.add_tab),
             actions = [
-                ft.TextButton("Добавить", on_click=self.add_tab),
-                ft.TextButton("Отмена", on_click=self.close_dlg)
+                TextButton("Добавить", on_click=self.add_tab),
+                TextButton("Отмена", on_click=self.close_dlg)
             ],
-            actions_alignment=ft.MainAxisAlignment.END,
+            actions_alignment=MainAxisAlignment.END,
             on_dismiss=lambda e: print("Modal dialog dismissed!"),
         )
         self.tabs_bar = Tabs(animation_duration=200)
@@ -73,7 +79,7 @@ class DataAnalysisApp(UserControl):
         self.image_area = Row(
             controls=[
                 Container(
-                    border=ft.border.all(ft.colors.RED),
+                    border=border.all(colors.RED),
                     content=Row(
                         controls=[
                             ft.ListView(
@@ -132,7 +138,7 @@ class DataAnalysisApp(UserControl):
         tab_title = tab_title if tab_title else 'Вкладка ' + tab_type
         
         # Создаем ссылку на вкладку и создаем объект вкладки
-        tab_ref = ft.Ref[Tab]()
+        tab_ref = Ref[Tab]()
         tab = Tab(
             ref=tab_ref,
             tab_content=Row(

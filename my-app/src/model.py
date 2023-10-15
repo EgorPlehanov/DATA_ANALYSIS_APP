@@ -1,6 +1,7 @@
 import numpy as np
 import sympy as sp
 import pandas as pd
+import csv
 from pandas import (
     DataFrame
 )
@@ -40,9 +41,12 @@ class Model:
         Округляет и удаляет значения больше заданного порога в датафрейме
         '''
         def round_and_clip(value):
-            if isinstance(value, (int, float)):
-                return round(value, decimal_places) if value <= max_value else max_value
-            else:
+            try:
+                numeric_value = value
+                if isinstance(numeric_value, (str)):
+                    numeric_value = float(value.replace(',', '.'))
+                return round(numeric_value, decimal_places) if numeric_value <= max_value else max_value
+            except ValueError:
                 return value
             
         return df.map(round_and_clip)
@@ -209,8 +213,63 @@ class Model:
 
 
     def data_download(input_data, show_table_data=False) -> list:
-        print(input_data)
-        return Model.get_result_dict(in_list=True)
+        if not (len(input_data) > 0 and isinstance(input_data[0], dict)):
+            return Model.get_result_dict(in_list=True)
+
+        result_list = []
+        for file in input_data:
+            file_name = file.get('name', '')
+            file_path = file.get('path', '')
+
+            # Определение формата файла на основе расширения
+            file_extension = file_path.split('.')[-1].lower()
+            
+            try:
+                if file_extension == 'csv':
+                    # Определение разделителя
+                    with open(file_path, 'r', newline='') as csvfile:
+                        sample_data = csvfile.read(1024)
+                        sniffer = csv.Sniffer()
+                        delimiter = sniffer.sniff(sample_data).delimiter
+                    # Чтение CSV файла с указанием определенного разделителя
+                    df = pd.read_csv(file_path, delimiter=delimiter)
+
+                elif file_extension in ('xls', 'xlsx', 'xlsm', 'xlsb', 'odf', 'ods', 'odt'):
+                    df = pd.read_excel(file_path)
+
+                elif file_extension == 'json':
+                    df = pd.read_json(file_path)
+
+                elif file_extension == 'txt':
+                    df = pd.read_table(file_path, sep=';')
+
+                else:
+                    result_list.append(Model.get_result_dict(
+                        error_message=f"Формат {file_extension} не поддерживается ",
+                        type=f'data_download({file_name})'
+                    ))
+                    continue
+            except Exception as e:
+                result_list.append(Model.get_result_dict(
+                    error_message=f"При чтении файла '{file_name}' произошла ошибка: {str(e)}",
+                    type=f'data_download({file_name})'
+                ))
+                continue
+
+            if df.empty:
+                result_list.append(Model.get_result_dict(
+                    error_message=f"Файл '{file_name}' пуст",
+                    type=f'data_download({file_name})'
+                ))
+                continue
+
+            result_list.append(Model.get_result_dict(
+                data=df,
+                type=f'data_download({file_name})',
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
     
     # ========== EDIT FUNCTIONS ==========
 
@@ -719,7 +778,7 @@ class Model:
                         'dialog_title': 'Выбор набора данных',
                         'initial_directory': None,
                         'file_type': None,
-                        'allowed_extensions': ['csv'],
+                        'allowed_extensions': ['csv', 'xls', 'xlsx', 'xlsm', 'xlsb', 'odf', 'ods', 'odt', 'json', 'txt'],
                         'allow_multiple': True,
                     },
                     "default_value": [],

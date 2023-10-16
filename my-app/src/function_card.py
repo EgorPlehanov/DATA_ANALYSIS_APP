@@ -843,7 +843,7 @@ class FunctionCard(UserControl):
 
 
 
-    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False) -> Container:
+    def _get_function_result_graphic(self, dataframe, column_names=None, color=None, graphic_curved=False, max_points_count = 1500) -> Container:
         df = dataframe.get('data')
         graphic_title = dataframe.get('type')
 
@@ -854,6 +854,10 @@ class FunctionCard(UserControl):
 
         if column_names is None:
             column_names = df.columns.tolist()  # Получаем названия столбцов из датафрейма
+
+        if len(df) > max_points_count:
+            step = round(len(df) / max_points_count)
+            df = df.iloc[::int(step)]
 
         data_points = [
             LineChartDataPoint(x, y)

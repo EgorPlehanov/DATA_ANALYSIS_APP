@@ -277,20 +277,20 @@ class Model:
     
     # ========== EDIT FUNCTIONS ==========
 
-    def generate_noise(N: int, R: float, delta: float) -> DataFrame:
+    def generate_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
         # Генерация случайного шума в заданном диапазоне [-R, R]
         noise_data = np.random.uniform(-R, R, N)
         # Пересчет данных в заданный диапазон R
-        min_val = np.min(noise_data)
-        max_val = np.max(noise_data)
+        min_val, max_val = np.min(noise_data), np.max(noise_data)
         normalized_noise = ((noise_data - min_val) / (max_val - min_val) - 0.5) * 2 * R
-        x = np.arange(0, N * delta, delta)
-        return DataFrame({'x': x, 'y': normalized_noise})
+        if x_values is None:
+            x_values = np.arange(0, N * delta, delta)
+        return DataFrame({'x': x_values, 'y': normalized_noise})
 
 
     def noise(data, N, R, delta, show_table_data=False) -> list:
         N = int(N)
-
+        print('noise')
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return Model.get_result_dict(
                 data=Model.generate_noise(N, R, delta),
@@ -309,7 +309,7 @@ class Model:
 
             N = len(df)
             
-            noised_df = Model.generate_noise(N, R, delta)
+            noised_df = Model.generate_noise(N, R, delta, df['x'].values)
             noised_data = Model.get_result_dict(
                 data=noised_df,
                 type='noise',
@@ -329,23 +329,56 @@ class Model:
         return result_list
 
 
-    def my_noise(data, N, R, delta, show_table_data=False) -> list:
-        N = int(N)
-
+    def generate_my_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
         current_time = int(time.time())
         random.seed(current_time)
 
         custom_noise_data = [random.uniform(-R, R) for _ in range(N)]
-    
-        t = np.arange(0, N * delta, delta)
-        noised_data = pd.DataFrame({'x': t, 'y': custom_noise_data})
-        return Model.get_result_dict(
-            data=noised_data,
-            type='my_noise',
-            view_chart=True,
-            view_table_horizontal=show_table_data,
-            in_list=True,
-        )
+
+        if x_values is None:
+            x_values = np.arange(0, N * delta, delta)
+        return pd.DataFrame({'x': x_values, 'y': custom_noise_data})
+
+
+    def my_noise(data, N, R, delta, show_table_data=False) -> list:
+        N = int(N)
+
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return Model.get_result_dict(
+                data=Model.generate_my_noise(N, R, delta),
+                type='my_noise',
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+                in_list=True,
+            )
+
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+
+            N = len(df)
+            
+            my_noised_df = Model.generate_my_noise(N, R, delta, df['x'].values)
+            my_noised_data = Model.get_result_dict(
+                data=my_noised_df,
+                type='noise',
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            )
+
+            data_noised_df = pd.concat([df, my_noised_df]).groupby('x', as_index=False).sum()
+            result_list.append(Model.get_result_dict(
+                data=data_noised_df,
+                type='noise',
+                initial_data=df_dict,
+                extra_data=my_noised_data,
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
     
 
     def shift(data, C, N1, N2, show_table_data=False) -> dict:
@@ -559,9 +592,16 @@ class Model:
                 result_list.append(Model.get_result_dict(error_message=error_message))
                 continue
             
+            y_min = np.min(y)
+            if y_min < 0:
+                y = y[:] - y_min
+
             intervals = np.array_split(y, M)
-            means = np.array([np.mean(interval) for interval in intervals])
-            std_deviations = np.array([np.std(interval) for interval in intervals])
+            intervals_means = np.array([np.mean(interval) for interval in intervals])
+            intervals_std = np.array([np.std(interval) for interval in intervals])
+
+            df_mean = np.mean(y)
+            df_std = np.std(y)
 
             is_stationarity = True
             for i in range(M):
@@ -569,21 +609,17 @@ class Model:
                     break
 
                 for j in range(i + 1, M):
-                    delta_mean = abs(means[i] - means[j])
-                    delta_std_dev = abs(std_deviations[i] - std_deviations[j])
+                    delta_mean = abs(intervals_means[i] - intervals_means[j])
+                    delta_std_dev = abs(intervals_std[i] - intervals_std[j])
 
-                    if delta_mean >= 0.05 * np.ptp(y) or delta_std_dev >= 0.05 * np.ptp(y):
+                    if (delta_mean / df_mean) > 0.05 or (delta_std_dev / df_std) > 0.05:
                         is_stationarity = False
                         break
-            res = adfuller(y)
-            # print(res)
-            is_stationarity_2 = res[1] < 0.05
 
             stats_df = pd.DataFrame({
-                'Параметр': ['Стационарность', 'Стационарность'],
-                'Значение': [str(is_stationarity), str(is_stationarity_2)]
+                'Параметр': ['Стационарность'],
+                'Значение': [f"Процесс {'' if is_stationarity else 'НЕ '}стационарный"]
             })
-            # 'Процесс ' + ('' if is_stationarity else 'НЕ ') + 'стационарный'
             result_list.append(Model.get_result_dict(
                 data=stats_df,
                 type='stationarity',
@@ -1091,9 +1127,9 @@ class Model:
                     "type": "slider",
                     "title": "Количество интервалов (M)",
                     "min": 2,
-                    "max": 1000,
+                    "max": 100,
                     "step": 1,
-                    "default_value": 100,
+                    "default_value": 10,
                 }
             }
         }

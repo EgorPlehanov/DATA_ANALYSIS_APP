@@ -239,7 +239,10 @@ class GraphicArea(Row):
         return results_view_tab
     
 
-    def on_change_result_view_tab_count(self, tab_name: str) -> None:
+    def _on_change_result_view_tab_count(self, tab_name: str) -> None:
+        '''
+        Изменяет индикатор количества блоков на вкладке результатов
+        '''
         match tab_name:
             case 'data':
                 conntrol = self.ref_tab_count_indiator_data.current
@@ -338,7 +341,7 @@ class GraphicArea(Row):
         # Добавляем параметры функции в список
         self.list_function_parameters.append(function_card.get_parameters())
         
-        self.on_change_result_view_tab_count(function_type)
+        self._on_change_result_view_tab_count(function_type)
         self.update_list_parametrs()
         self.update()
 
@@ -377,7 +380,7 @@ class GraphicArea(Row):
                 self.list_functions_analitic.remove(function_to_remove)
                 self.list_results_analitic.remove(reslut_view_to_remove)
 
-        self.on_change_result_view_tab_count(function_to_remove.function_type)
+        self._on_change_result_view_tab_count(function_to_remove.function_type)
         self.update_list_parametrs(function_to_remove.list_dependent_functions)
         self.update()
 
@@ -397,5 +400,4 @@ class GraphicArea(Row):
                 for parameter in function_parameters.content.controls:
                     if parameter.data in ['dropdown_function_data']:
                         function_parameters.data.update_function_card(update_parameters=True)
-                        self.update()
                         break

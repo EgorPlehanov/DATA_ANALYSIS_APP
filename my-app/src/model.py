@@ -5,8 +5,6 @@ import csv
 from pandas import (
     DataFrame
 )
-import scipy.stats as stats
-from statsmodels.tsa.stattools import adfuller
 import time
 import random
 
@@ -275,6 +273,51 @@ class Model:
             ))
         return result_list
     
+
+    def harm(N: int, A0: float, f0: float, delta_t: float, show_table_data=False) -> list:
+        error_message = None
+        if delta_t > 1 / (2 * f0):
+            error_message = f"Некоректное значение временного интервала, delta_t <= 1/(2*f0): delta_t = {delta_t}, 1/(2*f0) = {round(1 / (2 * f0), 5)}"
+
+        k = np.arange(0, N)
+        y_values = A0 * np.sin(2 * np.pi * f0 * delta_t * k)
+        harm_data = pd.DataFrame({'x': k, 'y': y_values})
+
+        return Model.get_result_dict(
+            data=harm_data,
+            type='harm',
+            error_message=error_message,
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
+    
+
+    def poly_harm(N: int, A_f_data: list, delta_t: float, show_table_data=False) -> list:
+
+        max_fi = max([params['f'] for params in A_f_data.values()])
+        error_message = None
+        if delta_t > 1 / (2 * max_fi):
+            error_message = "Некоректное значение временного интервала.\nОно должно удовлетворять условию: " \
+                + f"delta_t <= 1 / (2 * max(fi)): delta_t = {delta_t}, 1 / (2 * max(fi)) = {round(1 / (2 * max_fi), 5)}"
+
+
+        k = np.arange(0, N)
+        y_values = np.zeros(N)
+        for params in A_f_data.values():
+            y_values += params['A'] * np.sin(2 * np.pi * params['f'] * delta_t * k)
+
+        poly_harm_data = pd.DataFrame({'x': k, 'y': y_values})
+
+        return Model.get_result_dict(
+            data=poly_harm_data,
+            type='poly_harm',
+            error_message=error_message,
+            view_chart=True,
+            view_table_horizontal=show_table_data,
+            in_list=True,
+        )
+    
     # ========== EDIT FUNCTIONS ==========
 
     def generate_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
@@ -290,7 +333,6 @@ class Model:
 
     def noise(data, N, R, delta, show_table_data=False) -> list:
         N = int(N)
-        print('noise')
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return Model.get_result_dict(
                 data=Model.generate_noise(N, R, delta),
@@ -634,7 +676,7 @@ class Model:
         "trend": {
             "function": trend,
             'type': 'data',
-            'name': 'trend',
+            'name': 'Тренд',
             "parameters": {
                 "type": {
                     "type": "dropdown",
@@ -702,7 +744,7 @@ class Model:
         'multi_trend': {
             'function': multi_trend,
             'type': 'data',
-            'name': 'multi_trend',
+            'name': 'Мультитренд',
             'parameters': {
                 "type_list": {
                     "type": "checkbox",
@@ -774,7 +816,7 @@ class Model:
         'combinate_trend': {
             'function': combinate_trend,
             'type': 'data',
-            'name': 'combinate_trend',
+            'name': 'Кусочная функция',
             'parameters': {
                 "type_list": {
                     "type": "checkbox",
@@ -834,6 +876,100 @@ class Model:
                     "max": 5000,
                     "step": 100,
                     "default_value": 600,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
+            }
+        },
+
+        'harm': {
+            'function': harm,
+            'type': 'data',
+            'name': 'Гармонический процесс',
+            'parameters': {
+                "N": {
+                    "type": "slider",
+                    "title": "Длина данных (N)",
+                    "min": 100,
+                    "max": 5000,
+                    "step": 10,
+                    "default_value": 1000,
+                },
+                "A0": {
+                    "type": "slider",
+                    "title": "Амплитуда (A0)",
+                    "min": 1,
+                    "max": 1000,
+                    "step": 1,
+                    "default_value": 100,
+                },
+                "f0": {
+                    "type": "slider",
+                    "title": "Частота (f0), Гц",
+                    "min": 1,
+                    "max": 1000,
+                    "step": 1,
+                    "default_value": 15,
+                },
+                "delta_t": {
+                    "type": "slider",
+                    "title": "Временной интервал (delta_t)",
+                    "min": 0.0001,
+                    "max": 0.01,
+                    "step": 0.0001,
+                    "round_digits": 5,
+                    "default_value": 0.0001,
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
+            }
+        },
+
+        'poly_harm': {
+            'function': poly_harm,
+            'type': 'data',
+            'name': 'Полигармонический процесс',
+            'parameters': {
+                "N": {
+                    "type": "slider",
+                    "title": "Длина данных (N)",
+                    "min": 100,
+                    "max": 5000,
+                    "step": 10,
+                    "default_value": 1000,
+                },
+                "A_f_data": {
+                    "type": "textfields_datatable",
+                    "title": "Амплитуда (A) и частота (f)",
+                    "columns": {
+                        "A": {
+                            'name': 'A, Гц',
+                            'tooltip': 'Амплитуда гармонического процесса',
+                        },
+                        "f": {
+                            'tooltip': 'Частота гармонического процесса в герцах (Гц)'
+                        },
+                    },
+                    "default_value": {
+                        0: {"A": 100, "f": 33},
+                        1: {"A": 15, "f": 5},
+                        2: {"A": 20, "f": 170},
+                    },
+                },
+                "delta_t": {
+                    "type": "slider",
+                    "title": "Временной интервал (delta_t)",
+                    "min": 0.0001,
+                    "max": 0.01,
+                    "step": 0.0001,
+                    "round_digits": 5,
+                    "default_value": 0.0001,
                 },
                 'show_table_data': {
                     "type": "switch",

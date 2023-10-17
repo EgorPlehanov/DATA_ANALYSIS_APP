@@ -23,6 +23,7 @@ from flet import (
     FontWeight,
     Icon,
     IconButton,
+    ElevatedButton,
     LabelPosition,
     LineChart,
     LineChartData,
@@ -47,6 +48,10 @@ from flet import (
     TextField,
     FilePicker,
     FilePickerResultEvent,
+    FilePickerFileType,
+    TextAlign,
+    KeyboardType,
+    TextStyle,
 )
 from function import Function
 
@@ -396,7 +401,8 @@ class FunctionCard(UserControl):
                                 data={
                                     "slider_text": ref_slider_text,
                                     'param_title': param.get("title"),
-                                    'param_name': param_name
+                                    'param_name': param_name,
+                                    'round_digits': param.get('round_digits', 3)
                                 },
                                 on_change_end=self._on_change_slider_value,
                             )
@@ -443,7 +449,7 @@ class FunctionCard(UserControl):
                         label=param.get('label', ''),
                         prefix_text=param.get('prefix_text', ''),
                         hint_text=param.get('hint_text', ''),
-                        hint_style=ft.TextStyle(italic=True),
+                        hint_style=TextStyle(italic=True),
                         helper_text=param.get('helper_text', ''),
                         dense=True,
                         autocorrect=param.get('autocorrect', False),
@@ -482,14 +488,14 @@ class FunctionCard(UserControl):
                                         ],
                                         ref=ref_files,
                                     ),
-                                    ft.ElevatedButton(
+                                    ElevatedButton(
                                         text=param.get('button_text', ''),
                                         icon=icons.UPLOAD_FILE,
                                         on_click=lambda _: pick_files_dialog.pick_files(
                                             dialog_title = pick_files_params.get('dialog_title'),
                                             initial_directory = pick_files_params.get('initial_directory'),
-                                            file_type = pick_files_params.get('file_type', ft.FilePickerFileType.ANY)
-                                                if param.get('allowed_extensions') is None else ft.FilePickerFileType.CUSTOM,
+                                            file_type = pick_files_params.get('file_type', FilePickerFileType.ANY)
+                                                if param.get('allowed_extensions') is None else FilePickerFileType.CUSTOM,
                                             allowed_extensions = pick_files_params.get('allowed_extensions'),
                                             allow_multiple = pick_files_params.get('allow_multiple'),
                                         ),
@@ -499,11 +505,100 @@ class FunctionCard(UserControl):
                         ],
                         expand=True,
                     )
+                
+                case 'textfields_datatable':
+                    ref_data_table = Ref[DataTable]()
+                    ref_delete_button = Ref[IconButton]()
 
+                    column_names = param.get('columns', [])
+                    columns = [
+                        DataColumn(
+                            label=Text(values.get('name', key)),
+                            tooltip=values.get('tooltip')
+                        )
+                        for key, values in column_names.items()
+                    ]
+                    rows = [
+                        DataRow(
+                            cells=[
+                                DataCell(TextField(
+                                    value=str(value),
+                                    expand=True,
+                                    border_radius=0,
+                                    border_color=colors.with_opacity(0.0, colors.PRIMARY),
+                                    text_align=TextAlign.CENTER,
+                                    keyboard_type=KeyboardType.NUMBER,
+                                    focused_color=colors.BLUE,
+                                    data={
+                                        'param_name': param_name,
+                                        'text_type': 'number',
+                                        'ref_data_table': ref_data_table,
+                                        'column_name': column_name
+                                    },
+                                    on_change=self._is_text_field_value_valid,
+                                    on_blur=self._on_change_textfields_datatable_cell_value,
+                                    on_submit=self._on_change_textfields_datatable_cell_value,
+                                ))
+                                for column_name, value in row_values.items()
+                            ],
+                            data={
+                                'ref_data_table': ref_data_table,
+                                'ref_delete_button': ref_delete_button,
+                            },
+                            on_select_changed=self.on_textfields_datatable_select_changed
+                        )
+                        for row_idx, row_values in current_parameters[param_name].items()
+                    ]
+
+                    param_editor = Column(
+                        controls=[
+                            Markdown(value=param.get('title', '')),
+                            DataTable(
+                                columns=columns,
+                                rows=rows,
+                                ref=ref_data_table,
+                                width=310,
+                                column_spacing=0,
+                                horizontal_margin=0,
+                                border_radius=10,
+                                border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+                                vertical_lines=BorderSide(1, colors.with_opacity(0.3, colors.ON_SURFACE)),
+                                horizontal_lines=BorderSide(1, colors.with_opacity(0.3, colors.ON_SURFACE)),
+                                show_checkbox_column=True,
+                                checkbox_horizontal_margin=0,
+                            ),
+                            Row(
+                                controls=[
+                                    IconButton(
+                                        icon=icons.PLAYLIST_ADD,
+                                        tooltip="Добавить строку",
+                                        data={
+                                            'ref_data_table': ref_data_table,
+                                            "ref_delete_button": ref_delete_button,
+                                            'param_name': param_name,
+                                            'column_names': column_names.keys(),
+                                        },
+                                        on_click=self.add_textfields_datatable_row,
+                                    ),
+                                    IconButton(
+                                        icon=icons.DELETE_SWEEP,
+                                        tooltip="Удалить выбранные строки",
+                                        ref=ref_delete_button,
+                                        disabled=True,
+                                        data={'ref_data_table': ref_data_table},
+                                        on_click=self.delete_textfields_datatable_rows,
+                                    )
+                                ],
+                                alignment=MainAxisAlignment.SPACE_BETWEEN,
+                            )
+                        ],
+                    ) 
+                    
             # Добавление представления параметра в список
             parameters_view_list.append(
                 Container(
-                    content=param_editor, data=param_type,
+                    content=param_editor,
+                    data=param_type,
                     padding=10,
                     border_radius=10,
                     border=border.all(1, colors.with_opacity(0.05, colors.SECONDARY)),
@@ -521,7 +616,8 @@ class FunctionCard(UserControl):
         slider_title_control = e.control.data.get('slider_text').current
         slider_title_text = e.control.data.get('param_title')
         param_name = e.control.data.get('param_name')
-        param_value = round(e.control.value, 3)
+        round_digits = e.control.data.get('round_digits', 3)
+        param_value = round(e.control.value, round_digits)
 
         slider_title_control.value = f"{slider_title_text}: {param_value}"
         self.function.set_parameter_value(param_name, param_value)
@@ -598,21 +694,27 @@ class FunctionCard(UserControl):
         text_field_value = e.control.value
         
         error_message = ''
-        match text_type:
-            case 'function':
-                if text_field_value:
-                    if not re.match(f"^[a-z0-9+\-*/()., ]*$", text_field_value):
-                        error_message = f"Ошибка: Недопустимые символы в функции"
-                    else:
-                        try:
-                            ast.parse(text_field_value)
-                            sp.sympify(text_field_value, evaluate=False)
-                            sp.parse_expr(text_field_value)
-                        except Exception as exeption:
-                            error_message = f"Ошибка: {exeption}"
-            case 'number':
-                if not text_field_value.isnumeric():
-                    error_message = f"Неверный формат числа"
+        if text_field_value != '':
+            match text_type:
+                case 'function':
+                    if text_field_value:
+                        if not re.match(f"^[a-z0-9+\-*/()., ]*$", text_field_value):
+                            error_message = f"Ошибка: Недопустимые символы в функции"
+                        else:
+                            try:
+                                ast.parse(text_field_value)
+                                sp.sympify(text_field_value, evaluate=False)
+                                sp.parse_expr(text_field_value)
+                            except Exception as exeption:
+                                error_message = f"Ошибка: {exeption}"
+                case 'int_number':
+                    if not text_field_value.isnumeric():
+                        error_message = f"Не целое число"
+                case 'number':
+                    try:
+                        float(text_field_value)
+                    except ValueError:
+                        error_message = f"Неверный формат числа"
 
         e.control.error_text = error_message
         e.control.update()
@@ -649,7 +751,7 @@ class FunctionCard(UserControl):
             return f"{size / (1024 * 1024 * 1024):.2f} ГБ"
 
 
-    def on_file_picker_result(self, e: ft.FilePickerResultEvent):
+    def on_file_picker_result(self, e: FilePickerResultEvent):
         '''
         Обновляет список файлов в параметре экземпляра класса Function
         '''
@@ -673,6 +775,105 @@ class FunctionCard(UserControl):
                 param_name, files_list, [file['name'] for file in files_list]
             )
             self.update_function_card()
+
+
+    def on_textfields_datatable_select_changed(self, e) -> None:
+        '''
+        Изменяет выделение нажатой строки в таблице
+        '''
+        e.control.selected = not e.control.selected
+        e.control.update()
+
+        data_table_control = e.control.data.get('ref_data_table').current
+        delete_button_control = e.control.data.get('ref_delete_button').current
+        
+        select_rows_count = len([row for row in data_table_control.rows if row.selected])
+        delete_button_control.disabled = select_rows_count == 0
+        delete_button_control.update()
+
+
+    def add_textfields_datatable_row(self, e) -> None:
+        '''
+        Добавляет строку в таблицу
+        '''
+        ref_data_table = e.control.data.get('ref_data_table')
+        ref_delete_button = e.control.data.get('ref_delete_button')
+        param_name = e.control.data.get('param_name')
+        column_names = e.control.data.get('column_names')
+
+        data_table_control = ref_data_table.current
+        data_table_control.rows.append(
+            DataRow(
+                cells=[
+                    DataCell(TextField(
+                        expand=True,
+                        border_radius=0,
+                        border_color=colors.with_opacity(0.0, colors.PRIMARY),
+                        text_align=TextAlign.CENTER,
+                        keyboard_type=KeyboardType.NUMBER,
+                        focused_color=colors.BLUE,
+                        data={
+                            'param_name': param_name,
+                            'text_type': 'number',
+                            'ref_data_table': ref_data_table,
+                            'column_name': column_name
+                        },
+                        on_change=self._is_text_field_value_valid,
+                        on_blur=self._on_change_textfields_datatable_cell_value,
+                        on_submit=self._on_change_textfields_datatable_cell_value,
+                    ))
+                    for column_name in column_names
+                ],
+                data={
+                    'ref_data_table': ref_data_table,
+                    'ref_delete_button': ref_delete_button,
+                },
+                on_select_changed=self.on_textfields_datatable_select_changed
+            )
+        )
+        data_table_control.update()
+
+    
+    def delete_textfields_datatable_rows(self, e) -> None:
+        '''
+        Удаляет выбранные строки в таблице
+        '''
+        data_table_control = e.control.data.get('ref_data_table').current
+        data_table_control.rows = [row for row in data_table_control.rows if not row.selected]
+        data_table_control.update()
+
+        e.control.disabled = True
+        e.control.update()
+
+
+    def _on_change_textfields_datatable_cell_value(self, e) -> None:
+        '''
+        Обновляет значение параметра при обновлении значения ячейки таблицы
+        '''
+        rows = e.control.data.get('ref_data_table').current.rows
+
+        # Проверка на наличе некоректных данных в ячейках
+        error_text_list = [cell.content.error_text for row in rows for cell in row.cells if cell.content.error_text]
+        if len(error_text_list) > 0:
+            return
+        
+        # Берем только строки, в которых все ячейки заполнены
+        rows = [row for row in rows if len([1 for cell in row.cells if cell.content.value != '']) == len(row.cells)]
+        
+        textfields_datatable_value = {
+            idx: {
+                cell.content.data.get('column_name'): float(cell.content.value)
+                for cell in row.cells
+            }
+            for idx, row in enumerate(rows)
+        }
+
+        param_name = e.control.data.get('param_name')
+        self.function.set_parameter_value(
+            param_name, textfields_datatable_value,
+            str(textfields_datatable_value).replace('**', '\*\*') if textfields_datatable_value else 'Нет значения'
+        )
+        self.update_function_card()
 
 
     def _get_card_parameters_text(self) -> str:
@@ -1103,3 +1304,4 @@ class FunctionCard(UserControl):
 
     def get_result_view(self) -> Container:
         return self.result_view
+    

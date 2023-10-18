@@ -9,6 +9,7 @@ class Function:
         self.name = name
         self.function = Model.get_info(self.name, return_type='function')
         self.type = Model.get_info(self.name, return_type='type')
+        self.print_name = Model.get_info(self.name, return_type='name')
         self.parameters_info = Model.get_info(self.name, return_type='parameters')
         self.parameters_names = list(self.parameters_info.keys())
 

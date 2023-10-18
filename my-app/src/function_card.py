@@ -54,7 +54,7 @@ from flet import (
     TextStyle,
 )
 from function import Function
-
+from model import Model
 
 
 class FunctionCard(UserControl):
@@ -141,7 +141,8 @@ class FunctionCard(UserControl):
                     controls=[
                         Markdown(
                             extension_set=MarkdownExtensionSet.GITHUB_WEB,
-                            value = f'#### Функция (*id:* ***{self.function_id}***)\n**{self.function.name}** (*{", ".join(self.function.parameters_names)}*)'
+                            value = f'#### **{self.function.print_name}** (*id:*\u00A0***{self.function_id}***)\n' \
+                                + f'**{self.function.name}** (*{", ".join(self.function.parameters_names)}*)'
                         ),
                     ],
                     expand=True,
@@ -321,278 +322,28 @@ class FunctionCard(UserControl):
             param_type = param.get('type')
             match param_type:
                 case "dropdown":
-                    param_editor = Dropdown(
-                        dense=True,
-                        label=param.get('title'),
-                        options=[
-                            dropdown.Option(key=option.get('key'), text=option.get('text'))
-                            for option in param.get('options', [])
-                        ],
-                        value=current_parameters[param_name],
-                        data={'param_name': param_name},
-                        on_change=self._on_change_dropdown_value
-                    )
+                    param_editor = self._create_param_editor_dropdown(param_name, param, current_parameters[param_name])
 
                 case 'dropdown_function_data':
-                    function_card_list = []
-                    if self.function.type in ['edit', 'analitic']:
-                        function_card_list.extend(self.graphic_area.list_functions_data)
-                    if self.function.type == 'analitic':
-                        function_card_list.extend(self.graphic_area.list_functions_edit)
+                    param_editor = self._create_param_editor_dropdown_function_data(param_name, param, current_parameters[param_name])
 
-                    options = param.get('options', {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}}).copy()
-                    options.update({
-                        function_card.function_name_formatted: {
-                            'function_name': function_card.function_name_formatted,
-                            'value': function_card
-                        }
-                        for function_card in function_card_list
-                    })
-                    
-                    dropdown_value = 'Не выбраны'
-                    value_to_print = 'Не выбраны []'
-
-                    current_value = current_parameters[param_name]
-                    # Проверка не удаленно ли текущее значение из списка
-                    if current_value in options.values():
-                        dropdown_value = current_value.get('function_name')
-                        function_card = current_value.get('value')
-
-                        if isinstance(function_card, FunctionCard):
-                            function_card = function_card.function.result
-                        value_to_print = f"{dropdown_value}: {[elem.get('type') for elem in function_card]}"
-                    # else:
-                    #     # Установка дефолтного значения
-                    #     self.function.set_parameter_value(param_name, options[dropdown_value], 'Не выбраны []')
-                        # self.update_function_card()
-                    self.function.set_parameter_value(param_name, options[dropdown_value], value_to_print)
-                    
-
-                    param_editor = Dropdown(
-                        dense=True,
-                        label=param.get('title'),
-                        options=[
-                            dropdown.Option(key=key, text=key)
-                            for key in options.keys()
-                        ],
-                        value=dropdown_value,
-                        data={
-                            'param_name': param_name,
-                            'data': options
-                        },
-                        on_change=self._on_change_dropdown_function_value,
-                    )
-
-                case "slider":                    
-                    ref_slider_text = Ref[Text]()
-                    slider_divisions = int((param.get('max', 0) - param.get('min', 0)) / param.get('step', 1))
-                    param_editor = Column(
-                        controls=[
-                            Text(
-                                ref=ref_slider_text,
-                                value=f'{param.get("title")}: {current_parameters[param_name]}',
-                            ),
-                            Slider(
-                                min=param.get('min'),
-                                max=param.get('max'),
-                                value=current_parameters[param_name],
-                                divisions=slider_divisions,
-                                label='{value}',
-                                data={
-                                    "slider_text": ref_slider_text,
-                                    'param_title': param.get("title"),
-                                    'param_name': param_name,
-                                    'round_digits': param.get('round_digits', 3)
-                                },
-                                on_change_end=self._on_change_slider_value,
-                            )
-                        ],
-                    )
+                case "slider":
+                    param_editor = self._create_param_editor_slider(param_name, param, current_parameters[param_name])
 
                 case 'checkbox':
-                    checkboxes = param.get('checkboxes', [])
-                    ref_checkboxes = [Ref[Checkbox]() for _ in range(len(checkboxes))]
-                    param_editor = Column(
-                        controls=[
-                            Checkbox(
-                                label=checkbox.get('label'),
-                                value=checkbox.get('default_value'),
-                                ref=ref_checkboxes[idx],
-                                data={
-                                    'key': checkbox.get('key'),
-                                    'ref_checkboxes': ref_checkboxes,
-                                    'param_name': param_name,
-                                },
-                                on_change=self._on_change_checkbox_value
-                            )
-                            for idx, checkbox in enumerate(checkboxes)
-                        ]
-                    )
+                    param_editor = self._create_param_editor_checkbox(param_name, param, current_parameters[param_name])
 
                 case 'switch':
-                    param_editor = Row(
-                        controls=[
-                            Text(value=param.get('title')),
-                            Switch(
-                                label_position=LabelPosition.LEFT,
-                                value=current_parameters[param_name],
-                                data={'param_name': param_name},
-                                on_change=self._on_change_switch_value,
-                            )
-                        ],
-                        expand=True,
-                        alignment=MainAxisAlignment.SPACE_BETWEEN,
-                    )
+                    param_editor = self._create_param_editor_switch(param_name, param, current_parameters[param_name])
                     
                 case 'text_field':
-                    param_editor = TextField(
-                        label=param.get('label', ''),
-                        prefix_text=param.get('prefix_text', ''),
-                        hint_text=param.get('hint_text', ''),
-                        hint_style=TextStyle(italic=True),
-                        helper_text=param.get('helper_text', ''),
-                        dense=True,
-                        autocorrect=param.get('autocorrect', False),
-                        value=current_parameters[param_name],
-                        data={
-                            'param_name': param_name,
-                            'text_type': param.get('text_type', ''),
-                        },
-                        on_change=self._is_text_field_value_valid,
-                        on_blur=self._on_change_text_field_value,
-                        on_submit=self._on_change_text_field_value,
-                    )
+                    param_editor = self._create_param_editor_text_field(param_name, param, current_parameters[param_name])
 
                 case 'file_picker':
-                    ref_files = Ref[Column]()
-                    pick_files_dialog = FilePicker(
-                        data={
-                            'param_name': param_name,
-                            'ref_files': ref_files
-                        },
-                        on_result=self.on_file_picker_result,
-                    )
-                    self.page.overlay.append(pick_files_dialog)
-                    self.page.update()
-
-                    pick_files_params = param.get('pick_files_parameters', {})
-                    param_editor = Row(
-                        controls=[
-                            Column(
-                                controls=[
-                                    Text(value=param.get('title', '')),
-                                    Column(
-                                        controls=[
-                                            Text(f"{file['name']} ({self._convert_size(file['size'])})")
-                                            for file in current_parameters.get(param_name, [])
-                                        ],
-                                        ref=ref_files,
-                                    ),
-                                    ElevatedButton(
-                                        text=param.get('button_text', ''),
-                                        icon=icons.UPLOAD_FILE,
-                                        on_click=lambda _: pick_files_dialog.pick_files(
-                                            dialog_title = pick_files_params.get('dialog_title'),
-                                            initial_directory = pick_files_params.get('initial_directory'),
-                                            file_type = pick_files_params.get('file_type', FilePickerFileType.ANY)
-                                                if param.get('allowed_extensions') is None else FilePickerFileType.CUSTOM,
-                                            allowed_extensions = pick_files_params.get('allowed_extensions'),
-                                            allow_multiple = pick_files_params.get('allow_multiple'),
-                                        ),
-                                    ),
-                                ]
-                            )
-                        ],
-                        expand=True,
-                    )
+                    param_editor = self._create_param_editor_file_picker(param_name, param, current_parameters[param_name])
                 
                 case 'textfields_datatable':
-                    ref_data_table = Ref[DataTable]()
-                    ref_delete_button = Ref[IconButton]()
-
-                    column_names = param.get('columns', [])
-                    columns = [
-                        DataColumn(
-                            label=Text(values.get('name', key)),
-                            tooltip=values.get('tooltip')
-                        )
-                        for key, values in column_names.items()
-                    ]
-                    rows = [
-                        DataRow(
-                            cells=[
-                                DataCell(TextField(
-                                    value=str(value),
-                                    expand=True,
-                                    border_radius=0,
-                                    border_color=colors.with_opacity(0.0, colors.PRIMARY),
-                                    text_align=TextAlign.CENTER,
-                                    keyboard_type=KeyboardType.NUMBER,
-                                    focused_color=colors.BLUE,
-                                    data={
-                                        'param_name': param_name,
-                                        'text_type': 'number',
-                                        'ref_data_table': ref_data_table,
-                                        'column_name': column_name
-                                    },
-                                    on_change=self._is_text_field_value_valid,
-                                    on_blur=self._on_change_textfields_datatable_cell_value,
-                                    on_submit=self._on_change_textfields_datatable_cell_value,
-                                ))
-                                for column_name, value in row_values.items()
-                            ],
-                            data={
-                                'ref_data_table': ref_data_table,
-                                'ref_delete_button': ref_delete_button,
-                            },
-                            on_select_changed=self.on_textfields_datatable_select_changed
-                        )
-                        for row_idx, row_values in current_parameters[param_name].items()
-                    ]
-
-                    param_editor = Column(
-                        controls=[
-                            Markdown(value=param.get('title', '')),
-                            DataTable(
-                                columns=columns,
-                                rows=rows,
-                                ref=ref_data_table,
-                                width=310,
-                                column_spacing=0,
-                                horizontal_margin=0,
-                                border_radius=10,
-                                border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
-                                vertical_lines=BorderSide(1, colors.with_opacity(0.3, colors.ON_SURFACE)),
-                                horizontal_lines=BorderSide(1, colors.with_opacity(0.3, colors.ON_SURFACE)),
-                                show_checkbox_column=True,
-                                checkbox_horizontal_margin=0,
-                            ),
-                            Row(
-                                controls=[
-                                    IconButton(
-                                        icon=icons.PLAYLIST_ADD,
-                                        tooltip="Добавить строку",
-                                        data={
-                                            'ref_data_table': ref_data_table,
-                                            "ref_delete_button": ref_delete_button,
-                                            'param_name': param_name,
-                                            'column_names': column_names.keys(),
-                                        },
-                                        on_click=self.add_textfields_datatable_row,
-                                    ),
-                                    IconButton(
-                                        icon=icons.DELETE_SWEEP,
-                                        tooltip="Удалить выбранные строки",
-                                        ref=ref_delete_button,
-                                        disabled=True,
-                                        data={'ref_data_table': ref_data_table},
-                                        on_click=self.delete_textfields_datatable_rows,
-                                    )
-                                ],
-                                alignment=MainAxisAlignment.SPACE_BETWEEN,
-                            )
-                        ],
-                    ) 
+                    param_editor = self._create_param_editor_textfields_datatable(param_name, param, current_parameters[param_name])
                     
             # Добавление представления параметра в список
             parameters_view_list.append(
@@ -602,10 +353,297 @@ class FunctionCard(UserControl):
                     padding=10,
                     border_radius=10,
                     border=border.all(1, colors.with_opacity(0.05, colors.SECONDARY)),
-                    bgcolor=colors.BLACK12
+                    bgcolor=colors.BLACK12,
                 )
             )
         return parameters_view_list
+    
+
+    def _create_param_editor_dropdown(self, param_name, param, current_value) -> Dropdown:
+        editor_dropdown = Dropdown(
+            dense=True,
+            label=param.get('title'),
+            options=[
+                dropdown.Option(key=option.get('key'), text=option.get('text'))
+                for option in param.get('options', [])
+            ],
+            value=current_value,
+            data={'param_name': param_name},
+            on_change=self._on_change_dropdown_value
+        )
+        return editor_dropdown
+
+
+    def _create_param_editor_dropdown_function_data(self, param_name, param, current_value) -> Dropdown:
+        function_card_list = []
+        if self.function.type in ['edit', 'analitic']:
+            function_card_list.extend(self.graphic_area.list_functions_data)
+        if self.function.type == 'analitic':
+            function_card_list.extend(self.graphic_area.list_functions_edit)
+
+        options = param.get('options', {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}}).copy()
+        options.update({
+            function_card.function_name_formatted: {
+                'function_name': function_card.function_name_formatted,
+                'value': function_card
+            }
+            for function_card in function_card_list
+        })
+        
+        dropdown_value = 'Не выбраны'
+        value_to_print = 'Не выбраны []'
+        # Проверка не удаленно ли текущее значение из списка
+        if current_value in options.values():
+            dropdown_value = current_value.get('function_name')
+            function_card = current_value.get('value')
+
+            if isinstance(function_card, FunctionCard):
+                function_card = function_card.function.result
+            value_to_print = f"{dropdown_value}: {[elem.get('type') for elem in function_card]}"
+        self.function.set_parameter_value(param_name, options[dropdown_value], value_to_print)
+        
+        editor_dropdown_function_data = Dropdown(
+            dense=True,
+            label=param.get('title'),
+            options=[
+                dropdown.Option(key=key, text=key)
+                for key in options.keys()
+            ],
+            value=dropdown_value,
+            data={
+                'param_name': param_name,
+                'data': options
+            },
+            on_change=self._on_change_dropdown_function_value,
+        )
+        return editor_dropdown_function_data
+    
+
+    def _create_param_editor_slider(self, param_name, param, current_value) -> Column:
+        ref_slider_text = Ref[Text]()
+        slider_divisions = int((param.get('max', 0) - param.get('min', 0)) / param.get('step', 1))
+        editor_slider = Column(
+            controls=[
+                Text(
+                    ref=ref_slider_text,
+                    value=f'{param.get("title")}: {current_value}',
+                ),
+                Slider(
+                    min=param.get('min'),
+                    max=param.get('max'),
+                    value=current_value,
+                    divisions=slider_divisions,
+                    label='{value}',
+                    data={
+                        "slider_text": ref_slider_text,
+                        'param_title': param.get("title"),
+                        'param_name': param_name,
+                        'round_digits': param.get('round_digits', 3)
+                    },
+                    on_change_end=self._on_change_slider_value,
+                )
+            ],
+        )
+        return editor_slider
+
+
+    def _create_param_editor_checkbox(self, param_name, param, current_value) -> Column:
+        checkboxes = param.get('checkboxes', [])
+        ref_checkboxes = [Ref[Checkbox]() for _ in range(len(checkboxes))]
+        editor_checkbox = Column(
+            controls=[
+                Checkbox(
+                    label=checkbox.get('label'),
+                    value=checkbox.get('default_value'),
+                    ref=ref_checkboxes[idx],
+                    data={
+                        'key': checkbox.get('key'),
+                        'ref_checkboxes': ref_checkboxes,
+                        'param_name': param_name,
+                    },
+                    on_change=self._on_change_checkbox_value
+                )
+                for idx, checkbox in enumerate(checkboxes)
+            ]
+        )
+        return editor_checkbox
+
+
+    def _create_param_editor_switch(self, param_name, param, current_value) -> Row:
+        editor_switch = Row(
+            controls=[
+                Text(value=param.get('title')),
+                Switch(
+                    label_position=LabelPosition.LEFT,
+                    value=current_value,
+                    data={'param_name': param_name},
+                    on_change=self._on_change_switch_value,
+                )
+            ],
+            expand=True,
+            alignment=MainAxisAlignment.SPACE_BETWEEN,
+        )
+        return editor_switch
+
+
+    def _create_param_editor_text_field(self, param_name, param, current_value) -> TextField:
+        editor_text_field = TextField(
+            label=param.get('label', ''),
+            prefix_text=param.get('prefix_text', ''),
+            hint_text=param.get('hint_text', ''),
+            hint_style=TextStyle(italic=True),
+            helper_text=param.get('helper_text', ''),
+            dense=True,
+            autocorrect=param.get('autocorrect', False),
+            value=current_value,
+            data={
+                'param_name': param_name,
+                'text_type': param.get('text_type', ''),
+            },
+            on_change=self._is_text_field_value_valid,
+            on_blur=self._on_change_text_field_value,
+            on_submit=self._on_change_text_field_value,
+        )
+        return editor_text_field
+    
+
+    def _create_param_editor_file_picker(self, param_name, param, current_value) -> TextField:
+        ref_files = Ref[Column]()
+        pick_files_dialog = FilePicker(
+            data={
+                'param_name': param_name,
+                'ref_files': ref_files
+            },
+            on_result=self.on_file_picker_result,
+        )
+        self.page.overlay.append(pick_files_dialog)
+        self.page.update()
+
+        pick_files_params = param.get('pick_files_parameters', {})
+        editor_file_picker = Row(
+            controls=[
+                Column(
+                    controls=[
+                        Text(value=param.get('title', '')),
+                        Column(
+                            controls=[
+                                Text(f"{file['name']} ({self._convert_size(file['size'])})")
+                                for file in (current_value if current_value is None else [])#current_parameters.get(param_name, [])
+                            ],
+                            ref=ref_files,
+                        ),
+                        ElevatedButton(
+                            text=param.get('button_text', ''),
+                            icon=icons.UPLOAD_FILE,
+                            on_click=lambda _: pick_files_dialog.pick_files(
+                                dialog_title = pick_files_params.get('dialog_title'),
+                                initial_directory = pick_files_params.get('initial_directory'),
+                                file_type = pick_files_params.get('file_type', FilePickerFileType.ANY)
+                                    if param.get('allowed_extensions') is None else FilePickerFileType.CUSTOM,
+                                allowed_extensions = pick_files_params.get('allowed_extensions'),
+                                allow_multiple = pick_files_params.get('allow_multiple'),
+                            ),
+                        ),
+                    ]
+                )
+            ],
+            expand=True,
+        )
+        return editor_file_picker
+
+
+    def _create_param_editor_textfields_datatable(self, param_name, param, current_value) -> Column:
+        ref_data_table = Ref[DataTable]()
+        ref_delete_button = Ref[IconButton]()
+
+        column_names = param.get('columns', [])
+        columns = [
+            DataColumn(
+                label=Text(values.get('name', key)),
+                tooltip=values.get('tooltip')
+            )
+            for key, values in column_names.items()
+        ]
+        rows = [
+            DataRow(
+                cells=[
+                    DataCell(TextField(
+                        value=str(value),
+                        expand=True,
+                        border_radius=0,
+                        border_color=colors.with_opacity(0.0, colors.PRIMARY),
+                        text_align=TextAlign.CENTER,
+                        keyboard_type=KeyboardType.NUMBER,
+                        focused_color=colors.BLUE,
+                        data={
+                            'param_name': param_name,
+                            'text_type': 'number',
+                            'ref_data_table': ref_data_table,
+                            'column_name': column_name
+                        },
+                        on_change=self._is_text_field_value_valid,
+                        on_blur=self._on_change_textfields_datatable_cell_value,
+                        on_submit=self._on_change_textfields_datatable_cell_value,
+                    ))
+                    for column_name, value in row_values.items()
+                ],
+                data={
+                    'ref_data_table': ref_data_table,
+                    'ref_delete_button': ref_delete_button,
+                },
+                on_select_changed=self.on_textfields_datatable_select_changed
+            )
+            for row_idx, row_values in current_value.items()
+        ]
+
+        editor_textfields_datatable = Column(
+            controls=[
+                Markdown(value=param.get('title', '')),
+                DataTable(
+                    columns=columns,
+                    rows=rows,
+                    ref=ref_data_table,
+                    width=310,
+                    column_spacing=0,
+                    horizontal_margin=0,
+                    border_radius=10,
+                    border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+                    vertical_lines=BorderSide(1, colors.with_opacity(0.3, colors.ON_SURFACE)),
+                    horizontal_lines=BorderSide(1, colors.with_opacity(0.3, colors.ON_SURFACE)),
+                    show_checkbox_column=True,
+                    checkbox_horizontal_margin=0,
+                    animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
+                ),
+                Row(
+                    controls=[
+                        IconButton(
+                            icon=icons.PLAYLIST_ADD,
+                            tooltip="Добавить строку",
+                            data={
+                                'ref_data_table': ref_data_table,
+                                "ref_delete_button": ref_delete_button,
+                                'param_name': param_name,
+                                'column_names': column_names.keys(),
+                            },
+                            on_click=self.add_textfields_datatable_row,
+                        ),
+                        IconButton(
+                            icon=icons.DELETE_SWEEP,
+                            tooltip="Удалить выбранные строки",
+                            ref=ref_delete_button,
+                            disabled=True,
+                            data={
+                                'ref_data_table': ref_data_table,
+                                'param_name': param_name,
+                            },
+                            on_click=self.delete_textfields_datatable_rows,
+                        )
+                    ],
+                    alignment=MainAxisAlignment.SPACE_BETWEEN,
+                )
+            ],
+        )
+        return editor_textfields_datatable
 
 
     def _on_change_slider_value(self, e) -> None:
@@ -845,12 +883,17 @@ class FunctionCard(UserControl):
         e.control.disabled = True
         e.control.update()
 
+        param_name = e.control.data.get('param_name')
+        self._on_change_textfields_datatable_cell_value(data_table_control=data_table_control, param_name=param_name)
 
-    def _on_change_textfields_datatable_cell_value(self, e) -> None:
+
+    def _on_change_textfields_datatable_cell_value(self, e=None, data_table_control=None, param_name=None) -> None:
         '''
         Обновляет значение параметра при обновлении значения ячейки таблицы
         '''
-        rows = e.control.data.get('ref_data_table').current.rows
+        if data_table_control is None:
+            data_table_control = e.control.data.get('ref_data_table').current
+        rows = data_table_control.rows
 
         # Проверка на наличе некоректных данных в ячейках
         error_text_list = [cell.content.error_text for row in rows for cell in row.cells if cell.content.error_text]
@@ -868,7 +911,8 @@ class FunctionCard(UserControl):
             for idx, row in enumerate(rows)
         }
 
-        param_name = e.control.data.get('param_name')
+        if param_name is None:
+            param_name = e.control.data.get('param_name')
         self.function.set_parameter_value(
             param_name, textfields_datatable_value,
             str(textfields_datatable_value).replace('**', '\*\*') if textfields_datatable_value else 'Нет значения'
@@ -973,7 +1017,9 @@ class FunctionCard(UserControl):
             return None
         
         element_controls = []
-
+        # print('dataframe', dataframe)
+        # import time
+        # time.sleep(1)
         error_message = dataframe.get('error_message')
         if error_message:
             element_controls.append(
@@ -983,6 +1029,8 @@ class FunctionCard(UserControl):
         view_list = dataframe.get('view')
         if 'chart' in view_list:
             element_controls.append(self._get_function_result_graphic(dataframe, color=color))
+        if 'histogram' in view_list:
+            element_controls.append(self._get_function_result_histogram(dataframe, color=color))
         if 'table_data' in view_list:
             element_controls.append(self._get_datatable_data(dataframe))
         if 'table_statistics' in view_list:
@@ -1001,14 +1049,15 @@ class FunctionCard(UserControl):
 
         initial_data = dataframe.get('initial_data')
         if initial_data:
-            initial_data_name = initial_data.get('type')
-            initial_data_control = self._get_result_element_view(initial_data, color=color)
-            initial_data_view = self._get_dropdown_conteiner_for_control(
-                control=initial_data_control,
-                button_name=f"Показать исходные данные:{(f' ***{initial_data_name.strip()}***')}",
-                is_open=False,
-            )
-            element_controls.append(initial_data_view)
+            for data in initial_data:
+                initial_data_name = data.get('type')
+                initial_data_control = self._get_result_element_view(data, color=color)
+                initial_data_view = self._get_dropdown_conteiner_for_control(
+                    control=initial_data_control,
+                    button_name=f"Показать исходные данные:{(f' ***{initial_data_name.strip()}***')}",
+                    is_open=False,
+                )
+                element_controls.append(initial_data_view)
 
         return Column(expand=True, controls=element_controls)
     
@@ -1115,6 +1164,66 @@ class FunctionCard(UserControl):
                 button_name=f"Показать график:{(f' ***{graphic_title.strip()}***')}"
             )
         return chart_view
+    
+
+    def _get_function_result_histogram(self, dataframe, color=None):
+        df = dataframe.get('data')
+        graphic_title = dataframe.get('type')
+
+        if color is None:
+            color = colors.LIGHT_GREEN
+
+        column_names = df.columns.tolist()
+
+        bar_groups = [
+            ft.BarChartGroup(
+                x=round(x_value),
+                bar_rods=[
+                    ft.BarChartRod(
+                        to_y=y_value,
+                        color=color,
+                    )
+                ]
+            )
+            for x_value, y_value in zip(df.iloc[:, 0], df.iloc[:, 1])
+        ]
+
+        histogram = ft.BarChart(
+            bar_groups=bar_groups,
+            left_axis=ChartAxis(
+                title=Text(value=column_names[1]),
+                title_size=20,
+                labels_size=50,
+            ),
+            bottom_axis=ChartAxis(
+                title=Text(column_names[0]),
+                title_size=20,
+                labels_size=30
+            ),
+            top_axis=ChartAxis(
+                title=Text(value=graphic_title, size=20),
+                title_size=30,
+                show_labels=False,
+            ),
+            border=border.all(1, colors.with_opacity(0.5, colors.ON_SURFACE)),
+            horizontal_grid_lines=ChartGridLines(
+                width=1, color=colors.with_opacity(0.2, colors.ON_SURFACE),
+            ),
+            vertical_grid_lines=ChartGridLines(
+                width=1, color=colors.with_opacity(0.2, colors.ON_SURFACE),
+            ),
+            tooltip_bgcolor=colors.with_opacity(0.8, colors.BLACK38),
+            interactive=True,
+            expand=True,
+        )
+
+        histogram_view = Row(controls=[histogram])
+        if dataframe.get('main_view') != 'histogram':
+            histogram_view = self._get_dropdown_conteiner_for_control(
+                control=histogram,
+                button_name=f"Показать график:{(f' ***{graphic_title.strip()}***')}"
+            )
+        return histogram_view
 
 
     def _get_datatable_data(self, dataframe) -> Container:
@@ -1266,7 +1375,7 @@ class FunctionCard(UserControl):
             ),
             animate_size=animation.Animation(200, AnimationCurve.FAST_OUT_SLOWIN),
             border_radius=10,
-            # margin=margin.only(left=10),
+            border=border.only(left=BorderSide(1, colors.with_opacity(0.5, colors.ON_SURFACE))),
         )
         return dropdown_conteiner
 

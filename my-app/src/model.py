@@ -2,11 +2,11 @@ import numpy as np
 import sympy as sp
 import pandas as pd
 import csv
+import time
+import random
 from pandas import (
     DataFrame
 )
-import time
-import random
 
 
 
@@ -17,10 +17,12 @@ class Model:
             info = Model.functions_info[name]
             if return_type == 'function':
                 return info.get('function')
-            elif return_type == 'parameters':
-                return info.get('parameters')
             elif return_type == 'type':
                 return info.get('type')
+            elif return_type == 'parameters':
+                return info.get('parameters')
+            elif return_type == 'name':
+                return info.get('name')
             elif return_type == 'all':
                 return info
         return None
@@ -57,6 +59,7 @@ class Model:
             extra_data: dict = None,
             error_message: str = None,
             view_chart: bool = None,
+            view_histogram: bool = None,
             view_table_horizontal: bool = None,
             view_table_vertical: bool = None,
             main_view: str = None,
@@ -74,7 +77,11 @@ class Model:
             result_dict['extra_data'] = extra_data
 
         if type:
-            initial_data_type = f" ({initial_data.get('type', '')})" if initial_data else ''
+            initial_data_type = ''
+            if initial_data is not None:
+                initial_data_type_list = [data.get('type') for data in initial_data if data and 'type' in data]
+                initial_data_type = f" ({'; '.join(initial_data_type_list)})" if len(initial_data_type_list) > 0 else ''
+
             result_dict['type'] = f'{type}{initial_data_type}'
 
         if error_message:
@@ -83,6 +90,8 @@ class Model:
         view_list = []
         if view_chart:
             view_list.append('chart')
+        if view_histogram:
+            view_list.append('histogram')
         if view_table_horizontal:
             view_list.append('table_data')
         if view_table_vertical:
@@ -97,7 +106,6 @@ class Model:
         if in_list:
             return [result_dict]
         return result_dict
-
     
     # ========== DATA FUNCTIONS ==========
 
@@ -294,13 +302,11 @@ class Model:
     
 
     def poly_harm(N: int, A_f_data: list, delta_t: float, show_table_data=False) -> list:
-
         max_fi = max([params['f'] for params in A_f_data.values()])
         error_message = None
         if delta_t > 1 / (2 * max_fi):
             error_message = "Некоректное значение временного интервала.\nОно должно удовлетворять условию: " \
                 + f"delta_t <= 1 / (2 * max(fi)): delta_t = {delta_t}, 1 / (2 * max(fi)) = {round(1 / (2 * max_fi), 5)}"
-
 
         k = np.arange(0, N)
         y_values = np.zeros(N)
@@ -363,7 +369,7 @@ class Model:
             result_list.append(Model.get_result_dict(
                 data=data_noised_df,
                 type='noise',
-                initial_data=df_dict,
+                initial_data=[df_dict],
                 extra_data=noised_data,
                 view_chart=True,
                 view_table_horizontal=show_table_data,
@@ -415,7 +421,7 @@ class Model:
             result_list.append(Model.get_result_dict(
                 data=data_noised_df,
                 type='noise',
-                initial_data=df_dict,
+                initial_data=[df_dict],
                 extra_data=my_noised_data,
                 view_chart=True,
                 view_table_horizontal=show_table_data,
@@ -463,7 +469,7 @@ class Model:
             result_list.append(Model.get_result_dict(
                 data=shifted_df,
                 type='shift',
-                initial_data = df_dict,
+                initial_data = [df_dict],
                 error_message=error_message,
                 view_chart=True,
                 view_table_horizontal=show_table_data,
@@ -539,7 +545,7 @@ class Model:
             result_list.append(Model.get_result_dict(
                 data=data_spikes_df,
                 type='spikes',
-                initial_data=df_dict,
+                initial_data=[df_dict],
                 extra_data=spikes_data,
                 error_message=error_message,
                 view_chart=True,
@@ -568,7 +574,6 @@ class Model:
                 continue
             y = df.get('y').copy()
 
-            # N = len(y)
             min_value = np.min(y)
             max_value = np.max(y)
             mean = np.mean(y)
@@ -600,7 +605,7 @@ class Model:
             result_list.append(Model.get_result_dict(
                 data=stats_df,
                 type='statistics',
-                initial_data = df_dict,
+                initial_data = [df_dict],
                 view_table_vertical=True,
             ))
         return result_list
@@ -665,8 +670,213 @@ class Model:
             result_list.append(Model.get_result_dict(
                 data=stats_df,
                 type='stationarity',
-                initial_data = df_dict,
+                initial_data = [df_dict],
                 view_table_vertical=True,
+            ))
+        return result_list
+    
+    def hist(data, M, is_density=True, show_table_data=False) -> list:
+        '''
+        Строит графики функции плотности распределения вероятностей
+        '''
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        M = int(M)
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            counts, bin_edges = np.histogram(df.get('y').copy(), bins=M, density=is_density)
+            bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+            axi_name = 'density' if is_density else 'count'
+            hist_df = pd.DataFrame({'y': bin_centers, axi_name: counts})
+
+            result_list.append(Model.get_result_dict(
+                data=hist_df,
+                type='hist',
+                initial_data = [df_dict],
+                view_histogram=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def acf(data, function_type, show_table_data=False) -> list:
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+
+            y = df.get('y').copy()
+            N = len(y)
+
+            y_mean = np.mean(y)
+            L_values = np.arange(0, N)
+            ac_values = []
+
+            for L in L_values:
+                if function_type == 'autocorrelation':
+                    ac = sum([(y[k] - y_mean) * (y[k + L] - y_mean) for k in range(0, N-L-1)]) / sum((y - y_mean)**2)
+                elif function_type == 'covariance':
+                    ac = np.sum([(y[k] - y_mean) * (y[k+L] - y_mean) for k in range(0, N-L-1)]) / N
+
+                ac_values.append(ac)
+            
+            result_df = pd.DataFrame({'L': L_values, 'AC': ac_values})
+            result_list.append(Model.get_result_dict(
+                data=result_df,
+                type=f"acf_{function_type}",
+                initial_data = [df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def ccf(first_data, second_data, show_table_data=False) -> list:
+        if (
+            first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
+            or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
+        ):
+            return []
+        
+        result_list = []
+        first_function_data = first_data.get('value').function.result
+        second_function_data = second_data.get('value').function.result
+
+        for first_df_dict in first_function_data:
+            first_df = first_df_dict.get('data', None)
+            if first_df is None:
+                continue
+
+            first_values = first_df.get('y').copy()
+            first_N = len(first_values)
+
+            for second_df_dict in second_function_data:
+                second_df = second_df_dict.get('data', None)
+                if second_df is None:
+                    continue
+
+                second_values = second_df.get('y').copy()
+                second_N = len(second_values)
+
+                N = first_N if first_N < second_N else second_N
+
+                L_values = np.arange(0, N)
+                first_mean = np.mean(first_values)
+                second_mean = np.mean(second_values)
+                
+                ccf_values = []
+                for L in L_values:
+                    ccf_L = sum([(first_values[k] - first_mean) * (second_values[k + L] - second_mean) for k in range(0, N-L-1)]) / N
+                    ccf_values.append(ccf_L)
+                
+                result_df = pd.DataFrame({'L': L_values, 'AC': ccf_values})
+                result_list.append(Model.get_result_dict(
+                    data=result_df,
+                    type=f"ccf",
+                    initial_data=[first_df_dict, second_df_dict],
+                    view_chart=True,
+                    view_table_horizontal=show_table_data,
+                ))
+        return result_list
+    
+
+    def get_fourier(y_values) -> pd.DataFrame:
+        N = len(y_values)
+
+        # Вычисление прямого преобразования Фурье
+        real_part = np.zeros(N)  # Для действительной части
+        imag_part = np.zeros(N)  # Для мнимой части
+
+        for n in range(N):
+            for k in range(len(y_values)):
+                real_part[n] += y_values[k] * np.cos(2 * np.pi * n * k / N)
+                imag_part[n] -= y_values[k] * np.sin(2 * np.pi * n * k / N)            
+        
+        # Вычисление амплитудного спектра
+        X_amp = [np.sqrt(real_part[k] ** 2 + imag_part[k] ** 2) for k in range(N)]
+        return pd.DataFrame({'Re[Xn]': real_part, 'Im[Xn]': imag_part, '|Xn|': X_amp})
+
+
+    def fourier(data, show_table_data=False, show_calculation_table=False) -> list:
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+
+            x_values = df.get('x').copy()
+            y_values = df.get('y').copy()
+
+            fourier_data = Model.get_fourier(y_values)
+
+            fourier_extra_data = None
+            if show_calculation_table:
+                fourier_extra_data = Model.get_result_dict(
+                    data=fourier_data,
+                    type='fourier',
+                    view_table_horizontal=True,
+                )
+
+            fourier_df = pd.DataFrame({'x': x_values, 'y': fourier_data['|Xn|']})
+            result_list.append(Model.get_result_dict(
+                data=fourier_df,
+                type='fourier',
+                extra_data=fourier_extra_data,
+                initial_data = [df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def spectr_fourier(data={}, delta_t=None, show_table_data=False) -> list:
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        return []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            x_values = df.get('x').copy()
+            y_values = df.get('y').copy()
+
+            fourier_data = Model.get_fourier(y_values)
+
+            N = len(x_values) // 2
+
+            for n in range(N):
+                f = n * delta_t 
+                delta_t = 1 / (2 * f)
+
+
+            spectr_fourier_df = pd.DataFrame({'x': x_values, 'y': y_values})
+            result_list.append(Model.get_result_dict(
+                data=spectr_fourier_df,
+                type='spectr_fourier',
+                initial_data = [df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
             ))
         return result_list
 
@@ -1268,5 +1478,135 @@ class Model:
                     "default_value": 10,
                 }
             }
+        },
+
+        'hist': {
+            'function': hist,
+            'type': 'analitic',
+            'name': 'Плотность вероятности',
+            'parameters': {
+                'data': {
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
+                },
+                'M': {
+                    "type": "slider",
+                    "title": "Количество интервалов (M)",
+                    "min": 1,
+                    "max": 100,
+                    "step": 1,
+                    "default_value": 10,
+                },
+                'is_density': {
+                    "type": "switch",
+                    "title": "Показывать плотность вероятности?",
+                    'default_value': True
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': True
+                },
+            }
+        },
+
+        'acf': {
+            'function': acf,
+            'type': 'analitic',
+            'name': "Автокорреляция/Ковариация",
+            'parameters': {
+                'data': {
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
+                },
+                "function_type": {
+                    "type": "dropdown",
+                    "title": "Тип коэффициента",
+                    "options": [
+                        {
+                            "key": "autocorrelation",
+                            "text": "Автокорреляция",
+                        },
+                        {
+                            "key": "covariance",
+                            "text": "Ковариация",
+                        }
+                    ],
+                    "default_value": "autocorrelation",
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
+            }
+        },
+
+        "ccf": {
+            'function': ccf,
+            'type': 'analitic',
+            'name': 'Кросс-корреляция',
+            'parameters': {
+                'first_data': {
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
+                },
+                'second_data': {
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
+            }
+        },
+
+        'fourier': {
+            'function': fourier,
+            'type': 'analitic',
+            'name': 'Прямое преобразование Фурье',
+            'parameters': {
+                'data': {
+                    "type": "dropdown_function_data",
+                    "title": "Выбор набора данных",
+                    "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                    "default_value": {'function_name': 'Не выбраны', 'value': []},
+                    "default_value_to_print": 'Не выбраны: []',
+                },
+                'show_table_data': {
+                    "type": "switch",
+                    "title": "Показывать таблицу данных?",
+                    'default_value': False
+                },
+                'show_calculation_table': {
+                    "type": "switch",
+                    "title": "Показывать расчетную таблицу?",
+                    'default_value': False
+                },
+            }
+        },
+
+        'spectr_fourier': {
+            'function': spectr_fourier,
+            'type': 'analitic',
+            'name': 'Амплитудный спектр Фурье',
+            'parameters': {
+                
+            }
         }
+
     }

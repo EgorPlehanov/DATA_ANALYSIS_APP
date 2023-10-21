@@ -54,7 +54,6 @@ from flet import (
     TextStyle,
 )
 from function import Function
-from model import Model
 
 
 class FunctionCard(UserControl):
@@ -70,7 +69,10 @@ class FunctionCard(UserControl):
         self.function_name = function_name
         self.function_name_formatted = f'{self.function_name} (id: {self.function_id}, type: {self.function_type})'
         self.selected = False
+
+        # Список функций, которые завясят от данной
         self.list_dependent_functions = []
+        # Функция от которой зависит текущая функция
         self.provider_function = None
 
         # Функции обработчики нажатий на кнопки карточки функции 
@@ -316,34 +318,22 @@ class FunctionCard(UserControl):
         # Получение текущих параметров
         current_parameters = self.function.get_parameters_dict()
 
+        param_type_to_param_editor = {
+            'dropdown': self._create_param_editor_dropdown,
+            'dropdown_function_data': self._create_param_editor_dropdown_function_data,
+            'slider': self._create_param_editor_slider,
+            'checkbox': self._create_param_editor_checkbox,
+            'switch': self._create_param_editor_switch,
+            'text_field': self._create_param_editor_text_field,
+            'file_picker': self._create_param_editor_file_picker,
+            'textfields_datatable': self._create_param_editor_textfields_datatable
+        }
+
         # Цикл по всем параметрам
         for param_name, param in self.function.parameters_info.items():
             param_editor = None
             param_type = param.get('type')
-            match param_type:
-                case "dropdown":
-                    param_editor = self._create_param_editor_dropdown(param_name, param, current_parameters[param_name])
-
-                case 'dropdown_function_data':
-                    param_editor = self._create_param_editor_dropdown_function_data(param_name, param, current_parameters[param_name])
-
-                case "slider":
-                    param_editor = self._create_param_editor_slider(param_name, param, current_parameters[param_name])
-
-                case 'checkbox':
-                    param_editor = self._create_param_editor_checkbox(param_name, param, current_parameters[param_name])
-
-                case 'switch':
-                    param_editor = self._create_param_editor_switch(param_name, param, current_parameters[param_name])
-                    
-                case 'text_field':
-                    param_editor = self._create_param_editor_text_field(param_name, param, current_parameters[param_name])
-
-                case 'file_picker':
-                    param_editor = self._create_param_editor_file_picker(param_name, param, current_parameters[param_name])
-                
-                case 'textfields_datatable':
-                    param_editor = self._create_param_editor_textfields_datatable(param_name, param, current_parameters[param_name])
+            param_editor = param_type_to_param_editor[param_type](param_name, param, current_parameters[param_name])
                     
             # Добавление представления параметра в список
             parameters_view_list.append(
@@ -375,10 +365,11 @@ class FunctionCard(UserControl):
 
 
     def _create_param_editor_dropdown_function_data(self, param_name, param, current_value) -> Dropdown:
+        print(self.function.type)
         function_card_list = []
-        if self.function.type in ['edit', 'analitic']:
+        if self.function.type in ['edit', 'analytic']:
             function_card_list.extend(self.graphic_area.list_functions_data)
-        if self.function.type == 'analitic':
+        if self.function.type == 'analytic':
             function_card_list.extend(self.graphic_area.list_functions_edit)
 
         options = param.get('options', {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}}).copy()
@@ -454,7 +445,7 @@ class FunctionCard(UserControl):
             controls=[
                 Checkbox(
                     label=checkbox.get('label'),
-                    value=checkbox.get('default_value'),
+                    value=checkbox.get('key') in current_value,
                     ref=ref_checkboxes[idx],
                     data={
                         'key': checkbox.get('key'),
@@ -1017,16 +1008,13 @@ class FunctionCard(UserControl):
             return None
         
         element_controls = []
-        # print('dataframe', dataframe)
-        # import time
-        # time.sleep(1)
         error_message = dataframe.get('error_message')
         if error_message:
             element_controls.append(
                 self._get_result_error_message(error_message)
             )
         
-        view_list = dataframe.get('view')
+        view_list = dataframe.get('view', [])
         if 'chart' in view_list:
             element_controls.append(self._get_function_result_graphic(dataframe, color=color))
         if 'histogram' in view_list:

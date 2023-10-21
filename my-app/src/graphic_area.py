@@ -20,7 +20,7 @@ from flet import (
 )
 from function_card import FunctionCard
 import flet as ft
-from model import Model
+from Model.model import Model
 
 
 class GraphicArea(Row):
@@ -36,12 +36,12 @@ class GraphicArea(Row):
         # Списоки функций блоков (данные/обработка/анализ)
         self.list_functions_data = []
         self.list_functions_edit = []
-        self.list_functions_analitic = []
+        self.list_functions_analytic = []
 
         # Списки результатов для блоков области результатов (данные/обработка/анализ)
         self.list_results_data = []
         self.list_results_edit = []
-        self.list_results_analitic = []
+        self.list_results_analytic = []
 
         # Меню работы с функциями c блоками (данные/обработка/анализ)
         self.function_menu = Container(
@@ -66,10 +66,10 @@ class GraphicArea(Row):
                         self.list_results_edit,
                     ),
                     self._get_function_menu_block(
-                        'analitic',
+                        'analytic',
                         'Анализ',
-                        self.list_functions_analitic,
-                        self.list_results_analitic,
+                        self.list_functions_analytic,
+                        self.list_results_analytic,
                     ),
                 ]
             )
@@ -95,11 +95,11 @@ class GraphicArea(Row):
 
         self.ref_result_view_data = Ref[Column]()
         self.ref_result_view_edit = Ref[Column]()
-        self.ref_result_view_analitic = Ref[Column]()
+        self.ref_result_view_analytic = Ref[Column]()
 
         self.ref_tab_count_indiator_data = Ref[Container]()
         self.ref_tab_count_indiator_edit = Ref[Container]()
-        self.ref_tab_count_indiator_analitic = Ref[Container]()
+        self.ref_tab_count_indiator_analytic = Ref[Container]()
 
         # Область вывода результатов с вкладками (данные/обработка/анализ)
         self.results_view = Container(
@@ -124,9 +124,9 @@ class GraphicArea(Row):
                     ),
                     self._get_result_view_tab(
                         'Анализ',
-                        self.list_results_analitic,
-                        self.ref_result_view_analitic,
-                        self.ref_tab_count_indiator_analitic
+                        self.list_results_analytic,
+                        self.ref_result_view_analytic,
+                        self.ref_tab_count_indiator_analytic
                     ),
                 ],
             ),
@@ -250,9 +250,9 @@ class GraphicArea(Row):
             case 'edit':
                 conntrol = self.ref_tab_count_indiator_edit.current
                 value = len(self.list_results_edit)
-            case 'analitic':
-                conntrol = self.ref_tab_count_indiator_analitic.current
-                value = len(self.list_results_analitic)
+            case 'analytic':
+                conntrol = self.ref_tab_count_indiator_analytic.current
+                value = len(self.list_results_analytic)
         conntrol.content.value = str(value)
         conntrol.visible = False if value == 0 else True
 
@@ -289,9 +289,9 @@ class GraphicArea(Row):
                 case 'edit':
                     self.ref_result_view.current.selected_index = 1
                     # scroll_view = self.ref_result_view_edit.current
-                case 'analitic':
+                case 'analytic':
                     self.ref_result_view.current.selected_index = 2
-                    # scroll_view = self.ref_result_view_analitic.current
+                    # scroll_view = self.ref_result_view_analytic.current
             
             # ПРОКРУТКА ДО ЭЛЕМЕНТА В СПИСКЕ РЕЗУЛЬТАТОВ НЕ РАБОТЕТ
             # ПРОКРУТКА СРАБАТЫВАЕТ НА РОДИТЕЛЬСКИЕ ЭЛЕМЕНТЫ И ОКНО ПРОКРУЧИВАЕТСЯ МИМО НУЖНОГО МЕСТА
@@ -376,9 +376,9 @@ class GraphicArea(Row):
             case 'edit':
                 self.list_functions_edit.remove(function_to_remove)
                 self.list_results_edit.remove(reslut_view_to_remove)
-            case 'analitic':
-                self.list_functions_analitic.remove(function_to_remove)
-                self.list_results_analitic.remove(reslut_view_to_remove)
+            case 'analytic':
+                self.list_functions_analytic.remove(function_to_remove)
+                self.list_results_analytic.remove(reslut_view_to_remove)
 
         self._on_change_result_view_tab_count(function_to_remove.function_type)
         self.update_list_parametrs(function_to_remove.list_dependent_functions)

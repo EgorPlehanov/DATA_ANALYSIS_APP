@@ -4,6 +4,7 @@ import pandas as pd
 import sympy as sp
 import ast
 import re
+import os
 import flet as ft
 from flet import (
     AnimationCurve,
@@ -75,12 +76,18 @@ class FunctionCard(UserControl):
         # Функция от которой зависит текущая функция
         self.provider_function = None
 
+        self.list_ref_params_to_update = []
+
         # Функции обработчики нажатий на кнопки карточки функции 
         self.on_change_selected = on_change_selected
         self.on_click_delete = on_click_delete
 
         # Функция карточки
         self.function = Function(self.function_name)
+        
+        self.save_result_data_dialog = FilePicker(
+            on_result=self._save_result_data,
+        )
 
         # Содержимое карточки функции
         self.ref_card_parameters_text = Ref[Markdown]()
@@ -122,7 +129,7 @@ class FunctionCard(UserControl):
             padding=padding.only(left=10, top=10, right=20, bottom=10),
             key=self.function_id,
         )
-        
+    
 
     def build(self) -> Container:
         '''
@@ -171,15 +178,23 @@ class FunctionCard(UserControl):
                 Markdown(
                     value="#### Результат:"
                 ),
-                IconButton(
-                    icon=icons.KEYBOARD_ARROW_DOWN,
-                    ref=ref_card_result_show_button,
-                    data={
-                        'control': ref_card_result,
-                        'button': ref_card_result_show_button,
-                    },
-                    on_click=self._change_function_result_visible
-                ),
+                Row(
+                    controls=[
+                        IconButton(
+                            icon=icons.SAVE,
+                            on_click=self._open_dialog_save_file
+                        ),
+                        IconButton(
+                            icon=icons.KEYBOARD_ARROW_DOWN,
+                            ref=ref_card_result_show_button,
+                            data={
+                                'control': ref_card_result,
+                                'button': ref_card_result_show_button,
+                            },
+                            on_click=self._change_function_result_visible
+                        ),
+                    ]
+                )
             ]
         )
         card_result_data = Container(
@@ -259,7 +274,47 @@ class FunctionCard(UserControl):
         else:
             result_button.icon = icons.KEYBOARD_ARROW_DOWN
         self.update()
+
     
+    def _open_dialog_save_file(self, e) -> None:
+        '''
+        Открывает диалоговое окно cохранения результата
+        '''
+        self.page.overlay.append(self.save_result_data_dialog)
+        self.page.update()
+
+        self.save_result_data_dialog.save_file(
+            dialog_title=f"Сохрание результата функции {self.function_name_formatted}: {self.function.print_name}",
+            file_type=FilePickerFileType.CUSTOM,
+            allowed_extensions=['csv', 'json'],
+        )
+
+
+    def _save_result_data(self, e: FilePickerResultEvent) -> None:
+        '''
+        Сохраняет результаты в файл
+        '''
+        path = e.path
+        if not path:
+            return
+        file_format = os.path.splitext(path)[-1][1:].lower()
+
+        if file_format not in ['csv', 'json']:
+            path = f'{path}.csv'
+            file_format = 'csv'
+
+        try:
+            with open(path, 'w') as file:
+                data_to_save = self.function.result[0].get('data', pd.DataFrame())
+                match file_format:
+                    case 'csv':
+                        data_to_save.to_csv(file, index=False)
+                    case 'json':
+                        data_to_save.to_json(file, orient='records')
+                        
+        except Exception as ex:
+            print(f'Error while saving data: {ex}')
+
 
     def update_function_card(self, update_parameters: bool = False) -> None:
         '''
@@ -365,7 +420,10 @@ class FunctionCard(UserControl):
 
 
     def _create_param_editor_dropdown_function_data(self, param_name, param, current_value) -> Dropdown:
-        print(self.function.type)
+        ref_dropdown_function_data = Ref[Dropdown]()
+        self.list_ref_params_to_update.append(ref_dropdown_function_data)
+
+
         function_card_list = []
         if self.function.type in ['edit', 'analytic']:
             function_card_list.extend(self.graphic_area.list_functions_data)
@@ -394,6 +452,7 @@ class FunctionCard(UserControl):
         self.function.set_parameter_value(param_name, options[dropdown_value], value_to_print)
         
         editor_dropdown_function_data = Dropdown(
+            ref=ref_dropdown_function_data,
             dense=True,
             label=param.get('title'),
             options=[

@@ -1,6 +1,6 @@
-from .settings.data_settings import functions_info as data_functions_info
-from .settings.edit_settings import functions_info as edit_functions_info
-from .settings.analytic_settings import functions_info as analytic_functions_info
+from .functions_settings.data_settings import functions_info as data_functions_info
+from .functions_settings.edit_settings import functions_info as edit_functions_info
+from .functions_settings.analytic_settings import functions_info as analytic_functions_info
 
 
 

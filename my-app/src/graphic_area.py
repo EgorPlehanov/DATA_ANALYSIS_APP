@@ -396,8 +396,11 @@ class GraphicArea(Row):
                 dependent_function.update_function_card(update_parameters=True)
         else:
             # Вызывается при добавлении новых функций
-            for function_parameters in self.list_function_parameters:
-                for parameter in function_parameters.content.controls:
-                    if parameter.data in ['dropdown_function_data']:
-                        function_parameters.data.update_function_card(update_parameters=True)
-                        break
+            for function in self.list_functions_data + self.list_functions_edit + self.list_functions_analytic:
+                if len(function.list_ref_params_to_update) > 0:
+                    function.update_function_card(update_parameters=True)
+            # for function_parameters in self.list_function_parameters:
+            #     for parameter in function_parameters.content.controls:
+            #         if parameter.data in ['dropdown_function_data']:
+            #             function_parameters.data.update_function_card(update_parameters=True)
+            #             break

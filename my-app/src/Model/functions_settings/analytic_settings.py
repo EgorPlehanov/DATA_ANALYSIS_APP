@@ -165,7 +165,26 @@ functions_info = {
         'type': 'analytic',
         'name': 'Амплитудный спектр Фурье',
         'parameters': {
-            
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'delta_t': {
+                "type": "slider",
+                "title": "Шаг дисеретизации (delta_t)",
+                "min": 0.0001,
+                "max": 0.01,
+                "step": 0.0001,
+                "default_value": 0.001,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
         }
     }
 

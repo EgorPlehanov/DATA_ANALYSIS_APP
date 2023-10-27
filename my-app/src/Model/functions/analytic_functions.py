@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import re
 
 from ..model_data_preparation import ModelDataPreparation as DataPrepare
 
@@ -158,6 +159,9 @@ class AnalyticFunctions:
     
 
     def acf(data, function_type, show_table_data=False) -> list:
+        '''
+        Автокорреляция/Ковариация
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -195,6 +199,9 @@ class AnalyticFunctions:
     
 
     def ccf(first_data, second_data, show_table_data=False) -> list:
+        '''
+        Кросс-корреляция
+        '''
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
             or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
@@ -244,6 +251,9 @@ class AnalyticFunctions:
     
 
     def get_fourier(y_values) -> pd.DataFrame:
+        '''
+        Вычисление прямого преобразования Фурье
+        '''
         N = len(y_values)
 
         # Вычисление прямого преобразования Фурье
@@ -261,6 +271,9 @@ class AnalyticFunctions:
 
 
     def fourier(data, show_table_data=False, show_calculation_table=False) -> list:
+        '''
+        Построение прямого преобразования Фурье
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -284,7 +297,7 @@ class AnalyticFunctions:
                     view_table_horizontal=True,
                 )
 
-            fourier_df = pd.DataFrame({'x': x_values, 'y': fourier_data['|Xn|']})
+            fourier_df = pd.DataFrame({'x': x_values, '|Xn|': fourier_data['|Xn|']})
             result_list.append(DataPrepare.create_result_dict(
                 data=fourier_df,
                 type='fourier',
@@ -297,30 +310,36 @@ class AnalyticFunctions:
     
 
     def spectr_fourier(data={}, delta_t=None, show_table_data=False) -> list:
+        '''
+        Построение амплитудного спектра Фурье на основе прямого преобразования Фурье
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
         result_list = []
-        return []
+        
         function_data = data.get('value').function.result
         for df_dict in function_data:
             df = df_dict.get('data', None)
             if df is None:
                 continue
             
-            x_values = df.get('x').copy()
-            y_values = df.get('y').copy()
+            fourier_data = df
+            if not re.search(r'fourier\([^)]*\)', df_dict.get('type', '')):
+                y_values = df.get('y').copy()
+                fourier_data = AnalyticFunctions.get_fourier(y_values)
 
-            fourier_data = AnalyticFunctions.get_fourier(y_values)
+            Xn_values = fourier_data.get('|Xn|').copy()
 
-            N = len(x_values) // 2
+            N = len(Xn_values) // 2
 
-            for n in range(N):
-                f = n * delta_t 
-                delta_t = 1 / (2 * f)
+            f_border = 1 / (2 * delta_t)
+            delta_f = f_border / N
+            frequencies = np.arange(N) * delta_f
 
 
-            spectr_fourier_df = pd.DataFrame({'x': x_values, 'y': y_values})
+
+            spectr_fourier_df = pd.DataFrame({'f': frequencies, '|Xn|': Xn_values[:N]})
             result_list.append(DataPrepare.create_result_dict(
                 data=spectr_fourier_df,
                 type='spectr_fourier',

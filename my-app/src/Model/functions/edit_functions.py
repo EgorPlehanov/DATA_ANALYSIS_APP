@@ -10,7 +10,9 @@ from ..model_data_preparation import ModelDataPreparation as DataPrepare
 
 class EditFunctions:
     def generate_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
-        # Генерация случайного шума в заданном диапазоне [-R, R]
+        '''
+        Генерация случайного шума в заданном диапазоне [-R, R]
+        '''
         noise_data = np.random.uniform(-R, R, N)
         # Пересчет данных в заданный диапазон R
         min_val, max_val = np.min(noise_data), np.max(noise_data)
@@ -21,6 +23,9 @@ class EditFunctions:
 
 
     def noise(data, N, R, delta, show_table_data=False) -> list:
+        '''
+        Добавляет шум к выбранному набору данных
+        '''
         N = int(N)
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return DataPrepare.create_result_dict(
@@ -61,6 +66,9 @@ class EditFunctions:
 
 
     def generate_my_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
+        '''
+        Генерация случайного шума в заданном диапазоне [-R, R] (Моя реализация)
+        '''
         current_time = int(time.time())
         random.seed(current_time)
 
@@ -72,6 +80,9 @@ class EditFunctions:
 
 
     def my_noise(data, N, R, delta, show_table_data=False) -> list:
+        '''
+        Добавляет шум к выбранному набору данных (Моя реализация)
+        '''
         N = int(N)
 
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):

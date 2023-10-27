@@ -8,19 +8,26 @@ from ..model_data_preparation import ModelDataPreparation as DataPrepare
 
 class DataFunctions:
     def trend_function_linear_rising(t, a, b):
+        '''Расчет линейно возрастающего тренда'''
         return a * t + b
 
     def trend_function_linear_falling(t, a, b):
+        '''Расчет линейно убывающего тренда'''
         return -a * t + b
 
     def trend_function_nonlinear_rising(t, a, b):
+        '''Расчет нелинейно возрастающего тренда'''
         return b * np.exp(a * t)
 
     def trend_function_nonlinear_falling(t, a, b):
+        '''Расчет нелинейно убывающего тренда'''
         return b * np.exp(-a * t)
 
 
     def trend(type, a, b, step, N, show_table_data=False) -> list:
+        '''
+        Создает графики тренда
+        '''
         t = np.arange(0, N, step)
         data = None
 
@@ -44,6 +51,9 @@ class DataFunctions:
     
 
     def multi_trend(type_list, a, b, step, N, show_table_data=False) -> list:
+        '''
+        Создает графики нескольких функций тренда
+        '''
         if len(type_list) == 0:
             return DataPrepare.create_result_dict(error_message="Нет данных для построения графика", in_list=True)
         
@@ -54,6 +64,9 @@ class DataFunctions:
     
 
     def combinate_trend(type_list, a, b, step, N, show_table_data=False) -> list:
+        '''
+        Создает график комбинированной функции тренда
+        '''
         num_parts = len(type_list)
         if num_parts == 0:
             return DataPrepare.create_result_dict(error_message="Нет данных для построения графика", in_list=True)
@@ -96,7 +109,9 @@ class DataFunctions:
     
 
     def custom_function(expression, N, step, show_table_data=False) -> list:
-
+        '''
+        Создает набор данных по расчетной функции
+        '''
         if not expression:
             return DataPrepare.create_result_dict(error_message="Не задана расчетная функция", in_list=True)
         
@@ -120,6 +135,9 @@ class DataFunctions:
 
 
     def data_download(input_data, show_table_data=False) -> list:
+        '''
+        Обрабатывает данные из файлов
+        '''
         if not (len(input_data) > 0 and isinstance(input_data[0], dict)):
             return DataPrepare.create_result_dict(in_list=True)
 
@@ -180,6 +198,9 @@ class DataFunctions:
     
 
     def harm(N: int, A0: float, f0: float, delta_t: float, show_table_data=False) -> list:
+        '''
+        Создает гармонический процесс
+        '''
         error_message = None
         if delta_t > 1 / (2 * f0):
             error_message = f"Некоректное значение временного интервала, delta_t <= 1/(2*f0): delta_t = {delta_t}, 1/(2*f0) = {round(1 / (2 * f0), 5)}"
@@ -199,6 +220,9 @@ class DataFunctions:
     
 
     def poly_harm(N: int, A_f_data: list, delta_t: float, show_table_data=False) -> list:
+        '''
+        Создает полигормонический процесс
+        '''
         if len(A_f_data) == 0:
             return DataPrepare.create_result_dict(error_message="Нет данных об амплитуде и частоте для построения графика", in_list=True)
 

@@ -85,6 +85,7 @@ class FunctionCard(UserControl):
         # Функция карточки
         self.function = Function(self.function_name)
         
+        # Диалоговое окно сохранения результата функции
         self.save_result_data_dialog = FilePicker(
             on_result=self._save_result_data,
         )
@@ -316,7 +317,7 @@ class FunctionCard(UserControl):
             print(f'Error while saving data: {ex}')
 
 
-    def update_function_card(self, update_parameters: bool = False) -> None:
+    def update_function_card(self, update_parameters: bool = False, ) -> None:
         '''
         Обновляет текст параметров в карточки функции
         '''
@@ -331,8 +332,13 @@ class FunctionCard(UserControl):
         #         ]
         #     )
         # self.ref_result_view_LineChartData.current.data_points = data_points
+
         if update_parameters:
             self.ref_parameters_view.current.controls = self._get_parameters_view_list()
+            # if self.list_ref_params_to_update is None:
+            #     self.ref_parameters_view.current.controls = self._get_parameters_view_list()
+            # else:
+            #     self._update_parameters()
             self.function._calculate()
 
         self.ref_result_view.current.content = self._get_result_view_list()
@@ -345,7 +351,31 @@ class FunctionCard(UserControl):
         for dependent_function in self.list_dependent_functions:
             dependent_function.update_function_card(update_parameters=True)
 
-        
+
+    def _update_parameters(self) -> None:
+        '''
+        Обновляет параметры в карточке функции
+        '''
+        param_type_to_param_editor = {
+            'dropdown': self._create_param_editor_dropdown,
+            'dropdown_function_data': self._create_param_editor_dropdown_function_data,
+            'slider': self._create_param_editor_slider,
+            'checkbox': self._create_param_editor_checkbox,
+            'switch': self._create_param_editor_switch,
+            'text_field': self._create_param_editor_text_field,
+            'file_picker': self._create_param_editor_file_picker,
+            'textfields_datatable': self._create_param_editor_textfields_datatable
+        }
+        parameters_current_values = self.function.get_parameters_dict()
+
+        for param in self.list_ref_params_to_update:
+            type = param['param_type']
+            ref = param['ref']
+            name = param['param_name']
+            settings = param['param']
+
+            param_type_to_param_editor[type](name, settings, parameters_current_values[name], ref.current)
+
 
 
     def get_parameters(self) -> Container:
@@ -419,10 +449,14 @@ class FunctionCard(UserControl):
         return editor_dropdown
 
 
-    def _create_param_editor_dropdown_function_data(self, param_name, param, current_value) -> Dropdown:
+    def _create_param_editor_dropdown_function_data(self, param_name, param, current_value, update_control=None) -> Dropdown:
         ref_dropdown_function_data = Ref[Dropdown]()
-        self.list_ref_params_to_update.append(ref_dropdown_function_data)
-
+        self.list_ref_params_to_update.append({
+            'ref': ref_dropdown_function_data,
+            'param_type': 'dropdown_function_data',
+            'param_name': param_name,
+            'param': param,
+        })
 
         function_card_list = []
         if self.function.type in ['edit', 'analytic']:
@@ -451,6 +485,23 @@ class FunctionCard(UserControl):
             value_to_print = f"{dropdown_value}: {[elem.get('type') for elem in function_card]}"
         self.function.set_parameter_value(param_name, options[dropdown_value], value_to_print)
         
+        # editor_dropdown_function_data = Dropdown(
+        #     ref=ref_dropdown_function_data,
+        #     dense=True,
+        #     label=param.get('title'),
+        #     on_change=self._on_change_dropdown_function_value,
+        # )
+        # if update_control is not None:
+        #     editor_dropdown_function_data = update_control
+
+        # editor_dropdown_function_data.options = [
+        #     dropdown.Option(key=key, text=key) for key in options.keys()
+        # ],
+        # editor_dropdown_function_data.value = dropdown_value
+        # editor_dropdown_function_data.data = {
+        #     'param_name': param_name, 'data': options
+        # }
+
         editor_dropdown_function_data = Dropdown(
             ref=ref_dropdown_function_data,
             dense=True,

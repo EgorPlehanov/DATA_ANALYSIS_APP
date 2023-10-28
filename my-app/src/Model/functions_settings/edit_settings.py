@@ -186,8 +186,8 @@ functions_info = {
         }
     },
 
-    'addModel': {
-        'function': EditFunctions.addModel,
+    'add_model': {
+        'function': EditFunctions.add_model,
         'type': 'edit',
         'name': 'Поэлементное сложение',
         'parameters': {
@@ -213,8 +213,8 @@ functions_info = {
         }
     },
 
-    'multModel': {
-        'function': EditFunctions.multModel,
+    'mult_model': {
+        'function': EditFunctions.mult_model,
         'type': 'edit',
         'name': 'Поэлементное умножение',
         'parameters': {

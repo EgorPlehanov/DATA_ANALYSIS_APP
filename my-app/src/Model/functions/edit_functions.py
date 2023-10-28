@@ -248,7 +248,7 @@ class EditFunctions:
         return result_list
     
 
-    def addModel(first_data, second_data, show_table_data=False) -> list:
+    def add_model(first_data, second_data, show_table_data=False) -> list:
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
             or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
@@ -288,7 +288,7 @@ class EditFunctions:
         return result_list
     
 
-    def multModel(first_data, second_data, show_table_data=False) -> list:
+    def mult_model(first_data, second_data, show_table_data=False) -> list:
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
             or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')

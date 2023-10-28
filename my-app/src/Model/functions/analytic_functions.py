@@ -337,8 +337,6 @@ class AnalyticFunctions:
             delta_f = f_border / N
             frequencies = np.arange(N) * delta_f
 
-
-
             spectr_fourier_df = pd.DataFrame({'f': frequencies, '|Xn|': Xn_values[:N]})
             result_list.append(DataPrepare.create_result_dict(
                 data=spectr_fourier_df,

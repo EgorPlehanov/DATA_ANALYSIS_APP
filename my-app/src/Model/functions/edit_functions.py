@@ -246,3 +246,83 @@ class EditFunctions:
                 view_table_horizontal=show_table_data,
             ))
         return result_list
+    
+
+    def addModel(first_data, second_data, show_table_data=False) -> list:
+        if (
+            first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
+            or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
+        ):
+            return []
+        
+        result_list = []
+        first_function_data = first_data.get('value').function.result
+        second_function_data = second_data.get('value').function.result
+
+        for first_df_dict in first_function_data:
+            first_df = first_df_dict.get('data', None)
+            if first_df is None:
+                continue
+
+            first_values = first_df.get('y').copy()
+            first_N = len(first_values)
+
+            for second_df_dict in second_function_data:
+                second_df = second_df_dict.get('data', None)
+                if second_df is None:
+                    continue
+
+                second_values = second_df.get('y').copy()
+                second_N = len(second_values)
+
+                N = first_N if first_N < second_N else second_N
+
+                result_df = pd.DataFrame({'x': np.arange(0, N), 'y': first_values.iloc[:N] + second_values.iloc[:N]})
+                result_list.append(DataPrepare.create_result_dict(
+                    data=result_df,
+                    type=f"ccf",
+                    initial_data=[first_df_dict, second_df_dict],
+                    view_chart=True,
+                    view_table_horizontal=show_table_data,
+                ))
+        return result_list
+    
+
+    def multModel(first_data, second_data, show_table_data=False) -> list:
+        if (
+            first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
+            or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
+        ):
+            return []
+        
+        result_list = []
+        first_function_data = first_data.get('value').function.result
+        second_function_data = second_data.get('value').function.result
+
+        for first_df_dict in first_function_data:
+            first_df = first_df_dict.get('data', None)
+            if first_df is None:
+                continue
+
+            first_values = first_df.get('y').copy()
+            first_N = len(first_values)
+
+            for second_df_dict in second_function_data:
+                second_df = second_df_dict.get('data', None)
+                if second_df is None:
+                    continue
+
+                second_values = second_df.get('y').copy()
+                second_N = len(second_values)
+
+                N = first_N if first_N < second_N else second_N
+
+                result_df = pd.DataFrame({'x': np.arange(0, N), 'y': first_values.iloc[:N] * second_values.iloc[:N]})
+                result_list.append(DataPrepare.create_result_dict(
+                    data=result_df,
+                    type=f"ccf",
+                    initial_data=[first_df_dict, second_df_dict],
+                    view_chart=True,
+                    view_table_horizontal=show_table_data,
+                ))
+        return result_list

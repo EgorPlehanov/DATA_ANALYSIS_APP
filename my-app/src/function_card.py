@@ -129,6 +129,7 @@ class FunctionCard(UserControl):
             bgcolor=colors.BLACK26,
             padding=padding.only(left=10, top=10, right=20, bottom=10),
             key=self.function_id,
+            on_click=self.on_change_selected,
         )
     
 
@@ -284,8 +285,16 @@ class FunctionCard(UserControl):
         self.page.overlay.append(self.save_result_data_dialog)
         self.page.update()
 
+        parameters_text = "; ".join([
+            f"{param}={item}".replace(': ', '=')
+            for param, item in self.function.get_parameters_dict(to_print=True).items()
+            if 'show' not in param
+        ])
+        parameters_text = (parameters_text[:100] + '...') if len(parameters_text) > 100 else parameters_text
+
         self.save_result_data_dialog.save_file(
             dialog_title=f"Сохрание результата функции {self.function_name_formatted}: {self.function.print_name}",
+            file_name=f"{self.function.print_name}({parameters_text}).csv",
             file_type=FilePickerFileType.CUSTOM,
             allowed_extensions=['csv', 'json'],
         )
@@ -1174,7 +1183,8 @@ class FunctionCard(UserControl):
                                 color=colors.RED, 
                                 weight=FontWeight.BOLD, 
                                 size=16, 
-                                max_lines=3
+                                max_lines=3,
+                                selectable=True
                             ),
                         ]
                     )

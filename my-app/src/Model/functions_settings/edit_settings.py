@@ -184,6 +184,60 @@ functions_info = {
                 'default_value': False
             },
         }
-
     },
+
+    'addModel': {
+        'function': EditFunctions.addModel,
+        'type': 'edit',
+        'name': 'Поэлементное сложение',
+        'parameters': {
+            'first_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор первого набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'second_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор второго набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
+        }
+    },
+
+    'multModel': {
+        'function': EditFunctions.multModel,
+        'type': 'edit',
+        'name': 'Поэлементное умножение',
+        'parameters': {
+            'first_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор первого набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'second_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор второго набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
+        }
+    }
+    
 }

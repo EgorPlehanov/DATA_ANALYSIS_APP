@@ -180,6 +180,14 @@ functions_info = {
                 "step": 0.0001,
                 "default_value": 0.001,
             },
+            'L_window': {
+                "type": "slider",
+                "title": "Длина окна (L_window)",
+                "min": 0,
+                "max": 1000,
+                "step": 1,
+                "default_value": 0,
+            },
             'show_table_data': {
                 "type": "switch",
                 "title": "Показывать таблицу данных?",

@@ -284,9 +284,7 @@ class AnalyticFunctions:
             if df is None:
                 continue
 
-            x_values = df.get('x').copy()
             y_values = df.get('y').copy()
-
             fourier_data = AnalyticFunctions.get_fourier(y_values)
 
             fourier_extra_data = None
@@ -297,7 +295,7 @@ class AnalyticFunctions:
                     view_table_horizontal=True,
                 )
 
-            fourier_df = pd.DataFrame({'x': x_values, '|Xn|': fourier_data['|Xn|']})
+            fourier_df = pd.DataFrame({'n': np.arange(len(fourier_data)), '|Xn|': fourier_data['|Xn|']})
             result_list.append(DataPrepare.create_result_dict(
                 data=fourier_df,
                 type='fourier',
@@ -309,13 +307,14 @@ class AnalyticFunctions:
         return result_list
     
 
-    def spectr_fourier(data={}, delta_t=None, show_table_data=False) -> list:
+    def spectr_fourier(data={}, delta_t=None, L_window=0, show_table_data=False) -> list:
         '''
         Построение амплитудного спектра Фурье на основе прямого преобразования Фурье
         '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
+        L_window = int(L_window)
         result_list = []
         
         function_data = data.get('value').function.result
@@ -324,12 +323,10 @@ class AnalyticFunctions:
             if df is None:
                 continue
             
-            fourier_data = df
-            if not re.search(r'fourier\([^)]*\)', df_dict.get('type', '')):
-                y_values = df.get('y').copy()
-                fourier_data = AnalyticFunctions.get_fourier(y_values)
-
-            Xn_values = fourier_data.get('|Xn|').copy()
+            y_values = df.get('y').copy()
+            Xn_values = np.abs(np.fft.fft(
+                y_values * np.concatenate([np.ones(len(y_values) - L_window), np.zeros(L_window)])
+            ))
 
             N = len(Xn_values) // 2
 

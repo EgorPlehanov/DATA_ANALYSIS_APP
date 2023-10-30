@@ -235,7 +235,7 @@ class EditFunctions:
                 view_table_horizontal=show_table_data,
             )
 
-            data_spikes_df = pd.concat([df, spikes_df]).groupby('x', as_index=False).sum()
+            data_spikes_df = pd.DataFrame({'x': df.get('x').copy(), 'y': df['y'] + spikes_df['y']})
             result_list.append(DataPrepare.create_result_dict(
                 data=data_spikes_df,
                 type='spikes',
@@ -249,6 +249,9 @@ class EditFunctions:
     
 
     def add_model(first_data, second_data, show_table_data=False) -> list:
+        '''
+        Поэлементно складывает два набора данных
+        '''
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
             or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
@@ -289,6 +292,9 @@ class EditFunctions:
     
 
     def mult_model(first_data, second_data, show_table_data=False) -> list:
+        '''
+        Поэлементно перемножает два набора данных
+        '''
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
             or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')

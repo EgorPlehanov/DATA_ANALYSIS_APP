@@ -172,7 +172,7 @@ functions_info = {
                         'default_value': True,
                     }
                 ],
-                "default_value": ["linear_rising", "linear_falling", "nonlinear_rising"]#, "nonlinear_falling"],
+                "default_value": ["nonlinear_rising", "nonlinear_falling", "linear_rising", "linear_falling"],
             },
             "a": {
                 "type": "slider",
@@ -360,7 +360,7 @@ functions_info = {
                     'dialog_title': 'Выбор набора данных',
                     'initial_directory': None,
                     'file_type': None,
-                    'allowed_extensions': ['csv', 'xls', 'xlsx', 'xlsm', 'xlsb', 'odf', 'ods', 'odt', 'json', 'txt'],
+                    'allowed_extensions': ['csv', 'xls', 'xlsx', 'xlsm', 'xlsb', 'odf', 'ods', 'odt', 'json', 'txt', 'dat'],
                     'allow_multiple': True,
                 },
                 "default_value": [],

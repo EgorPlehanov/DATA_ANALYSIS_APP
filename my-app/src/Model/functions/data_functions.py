@@ -28,7 +28,7 @@ class DataFunctions:
         '''
         Создает графики тренда
         '''
-        t = np.arange(0, N, step)
+        t = np.arange(0, N * step, step)
         data = None
 
         if type == "linear_rising":
@@ -72,7 +72,7 @@ class DataFunctions:
             return DataPrepare.create_result_dict(error_message="Нет данных для построения графика", in_list=True)
 
         # Разделить период t на равные части
-        t_parts = np.array_split(np.arange(0, N, step), num_parts)
+        t_parts = np.array_split(np.arange(0, N * step, step), num_parts)
 
         df_list = []
         previous_end_value = None
@@ -150,30 +150,37 @@ class DataFunctions:
             file_extension = file_path.split('.')[-1].lower()
             
             try:
-                if file_extension == 'csv':
-                    # Определение разделителя
-                    with open(file_path, 'r', newline='') as csvfile:
-                        sample_data = csvfile.read(1024)
-                        sniffer = csv.Sniffer()
-                        delimiter = sniffer.sniff(sample_data).delimiter
-                    # Чтение CSV файла с указанием определенного разделителя
-                    df = pd.read_csv(file_path, delimiter=delimiter)
+                match file_extension:
+                    case 'csv':
+                        # Определение разделителя
+                        with open(file_path, 'r', newline='') as csvfile:
+                            sample_data = csvfile.read(1024)
+                            sniffer = csv.Sniffer()
+                            delimiter = sniffer.sniff(sample_data).delimiter
+                        # Чтение CSV файла с указанием определенного разделителя
+                        df = pd.read_csv(file_path, delimiter=delimiter)
+                    case 'xls' | 'xlsx' | 'xlsm' | 'xlsb' | 'odf' | 'ods' | 'odt':
+                        df = pd.read_excel(file_path)
 
-                elif file_extension in ('xls', 'xlsx', 'xlsm', 'xlsb', 'odf', 'ods', 'odt'):
-                    df = pd.read_excel(file_path)
+                    case 'json':
+                        df = pd.read_json(file_path)
 
-                elif file_extension == 'json':
-                    df = pd.read_json(file_path)
+                    case 'txt':
+                        df = pd.read_table(file_path, sep=';')
 
-                elif file_extension == 'txt':
-                    df = pd.read_table(file_path, sep=';')
+                    case 'dat':
+                        with open(file_path, "rb") as file:
+                            binary_data = file.read()
+                        float_data = np.frombuffer(binary_data, dtype=np.float32)
 
-                else:
-                    result_list.append(DataPrepare.create_result_dict(
-                        error_message=f"Формат {file_extension} не поддерживается",
-                        type=f'data_download({file_name})'
-                    ))
-                    continue
+                        df = pd.DataFrame({'x': np.arange(0, len(float_data)), 'y': float_data})
+                    
+                    case _:
+                        result_list.append(DataPrepare.create_result_dict(
+                            error_message=f"Формат {file_extension} не поддерживается",
+                            type=f'data_download({file_name})'
+                        ))
+                        continue
             except Exception as e:
                 result_list.append(DataPrepare.create_result_dict(
                     error_message=f"При чтении файла '{file_name}' произошла ошибка: {str(e)}",
@@ -207,7 +214,7 @@ class DataFunctions:
 
         k = np.arange(0, N)
         y_values = A0 * np.sin(2 * np.pi * f0 * delta_t * k)
-        harm_data = pd.DataFrame({'x': k, 'y': y_values})
+        harm_data = pd.DataFrame({'x': delta_t * k, 'y': y_values})
 
         return DataPrepare.create_result_dict(
             data=harm_data,
@@ -238,7 +245,7 @@ class DataFunctions:
         for params in A_f_data.values():
             y_values += params['A'] * np.sin(2 * np.pi * params['f'] * delta_t * k)
 
-        poly_harm_data = pd.DataFrame({'x': k, 'y': y_values})
+        poly_harm_data = pd.DataFrame({'x': delta_t * k, 'y': y_values})
 
         return DataPrepare.create_result_dict(
             data=poly_harm_data,
@@ -248,3 +255,4 @@ class DataFunctions:
             view_table_horizontal=show_table_data,
             in_list=True,
         )
+    

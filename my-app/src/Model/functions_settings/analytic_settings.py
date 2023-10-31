@@ -35,6 +35,7 @@ functions_info = {
                 "min": 2,
                 "max": 100,
                 "step": 1,
+                'round_digits': 0,
                 "default_value": 10,
             }
         }
@@ -58,6 +59,7 @@ functions_info = {
                 "min": 1,
                 "max": 100,
                 "step": 1,
+                'round_digits': 0,
                 "default_value": 10,
             },
             'is_density': {
@@ -175,10 +177,11 @@ functions_info = {
             'delta_t': {
                 "type": "slider",
                 "title": "Шаг дисеретизации (delta_t)",
+                'round_digits': 5,
                 "min": 0.0001,
                 "max": 0.01,
                 "step": 0.0001,
-                "default_value": 0.001,
+                "default_value": 0.0005,
             },
             'L_window': {
                 "type": "slider",
@@ -186,6 +189,7 @@ functions_info = {
                 "min": 0,
                 "max": 1000,
                 "step": 1,
+                'round_digits': 0,
                 "default_value": 0,
             },
             'show_table_data': {

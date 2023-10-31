@@ -60,6 +60,7 @@ functions_info = {
                 "min": 100,
                 "max": 5000,
                 "step": 100,
+                'round_digits': 0,
                 "default_value": 600,
             },
             'show_table_data': {
@@ -132,6 +133,7 @@ functions_info = {
                 "min": 100,
                 "max": 5000,
                 "step": 100,
+                'round_digits': 0,
                 "default_value": 600,
             },
             'show_table_data': {
@@ -204,6 +206,7 @@ functions_info = {
                 "min": 100,
                 "max": 5000,
                 "step": 100,
+                'round_digits': 0,
                 "default_value": 600,
             },
             'show_table_data': {
@@ -225,7 +228,8 @@ functions_info = {
                 "min": 100,
                 "max": 5000,
                 "step": 10,
-                "default_value": 1000,
+                'round_digits': 0,
+                "default_value": 1024,
             },
             "A0": {
                 "type": "slider",
@@ -271,6 +275,7 @@ functions_info = {
                 "min": 100,
                 "max": 5000,
                 "step": 10,
+                'round_digits': 0,
                 "default_value": 1000,
             },
             "A_f_data": {
@@ -329,6 +334,7 @@ functions_info = {
                 "min": 100,
                 "max": 5000,
                 "step": 100,
+                'round_digits': 0,
                 "default_value": 600,
             },
             "step": {

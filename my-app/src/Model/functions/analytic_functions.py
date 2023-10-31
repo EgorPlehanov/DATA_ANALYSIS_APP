@@ -263,7 +263,7 @@ class AnalyticFunctions:
         for n in range(N):
             for k in range(len(y_values)):
                 real_part[n] += y_values[k] * np.cos(2 * np.pi * n * k / N)
-                imag_part[n] -= y_values[k] * np.sin(2 * np.pi * n * k / N)            
+                imag_part[n] += y_values[k] * np.sin(2 * np.pi * n * k / N)            
         
         # Вычисление амплитудного спектра
         X_amp = [np.sqrt(real_part[k] ** 2 + imag_part[k] ** 2) for k in range(N)]

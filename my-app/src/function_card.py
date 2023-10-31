@@ -53,6 +53,7 @@ from flet import (
     TextAlign,
     KeyboardType,
     TextStyle,
+    TextThemeStyle,
 )
 from function import Function
 
@@ -530,29 +531,62 @@ class FunctionCard(UserControl):
     
 
     def _create_param_editor_slider(self, param_name, param, current_value) -> Column:
-        ref_slider_text = Ref[Text]()
+        ref_textfield = Ref[TextField]()
+        ref_slider = Ref[Slider]()
+
         slider_divisions = int((param.get('max', 0) - param.get('min', 0)) / param.get('step', 1))
         editor_slider = Column(
             controls=[
-                Text(
-                    ref=ref_slider_text,
-                    value=f'{param.get("title")}: {current_value}',
+                Row(
+                    controls=[
+                        Text(value=f'{param.get("title")}:',),
+                        TextField(
+                            ref=ref_textfield,
+                            value=current_value,
+                            tooltip=f"Задайте значение от {param.get('min')} до {param.get('max')} (шаг {param.get('step')})",
+                            hint_text=f"Задайте {param_name}",
+                            expand=True,
+                            dense=True,
+                            border=ft.InputBorder.UNDERLINE,
+                            data={
+                                'ref_slider': ref_slider,
+                                'param_name': param_name,
+                                'round_digits': param.get('round_digits', 3),
+                                'text_type': 'number',
+                                'min': param.get('min'),
+                                'max': param.get('max'),
+                            },
+                            on_change=self._is_text_field_value_valid,
+                            on_blur=self._on_change_slider_value,
+                            on_submit=self._on_change_slider_value,
+                        )
+                    ],
                 ),
-                Slider(
-                    min=param.get('min'),
-                    max=param.get('max'),
-                    value=current_value,
-                    divisions=slider_divisions,
-                    label='{value}',
-                    data={
-                        "slider_text": ref_slider_text,
-                        'param_title': param.get("title"),
-                        'param_name': param_name,
-                        'round_digits': param.get('round_digits', 3)
-                    },
-                    on_change_end=self._on_change_slider_value,
+                Row(
+                    controls=[
+                        Text(param.get('min'), style=TextThemeStyle.BODY_SMALL),
+                        Slider(
+                            ref=ref_slider,
+                            expand=True,
+                            min=param.get('min'),
+                            max=param.get('max'),
+                            value=current_value,
+                            divisions=slider_divisions,
+                            label='{value}',
+                            data={
+                                "ref_textfield": ref_textfield,
+                                'param_name': param_name,
+                                'round_digits': param.get('round_digits', 3)
+                            },
+                            on_change=self._update_slider_textfield,
+                            on_change_end=self._on_change_slider_value,
+                        ),
+                        Text(param.get('max'), style=TextThemeStyle.BODY_SMALL),
+                    ],
+                    spacing=0
                 )
             ],
+            spacing=0
         )
         return editor_slider
 
@@ -617,7 +651,7 @@ class FunctionCard(UserControl):
         return editor_text_field
     
 
-    def _create_param_editor_file_picker(self, param_name, param, current_value) -> TextField:
+    def _create_param_editor_file_picker(self, param_name, param, current_value) -> Row:
         ref_files = Ref[Column]()
         pick_files_dialog = FilePicker(
             data={
@@ -756,18 +790,33 @@ class FunctionCard(UserControl):
         return editor_textfields_datatable
 
 
+    def _update_slider_textfield(self, e) -> None:
+        '''Обновляет значение в textfield значением slider.value'''
+        textfield = e.control.data.get('ref_textfield').current
+        round_digits = e.control.data.get('round_digits')
+        textfield.value = round(e.control.value, round_digits) if round_digits > 0 else int(float(e.control.value))
+        textfield.update()
+
+
     def _on_change_slider_value(self, e) -> None:
         '''
         Обнавляет значение параметра в экземпляре класса Function, заголовке слайдера и карточке функции
         '''
-        # ЕСЛИ БУДЕТ ЛАГАТЬ ПЕРЕПИСАТЬ НА ОБНОВЛЕНИЕ ПАРАМЕТРОВ ФУНКЦИИ ПО КНОПКЕ
-        slider_title_control = e.control.data.get('slider_text').current
-        slider_title_text = e.control.data.get('param_title')
+        if e.control.data.get('ref_slider'):
+            param_editor = e.control.data.get('ref_slider').current
+            if e.control.error_text or not e.control.value:
+                return
+        else:
+            param_editor = e.control.data.get('ref_textfield').current
+            param_editor.error_text = None
+            
+
         param_name = e.control.data.get('param_name')
         round_digits = e.control.data.get('round_digits', 3)
-        param_value = round(e.control.value, round_digits)
+        param_value = int(float(e.control.value) * 10**round_digits) / 10**round_digits if round_digits > 0 else int(float(e.control.value))
 
-        slider_title_control.value = f"{slider_title_text}: {param_value}"
+        e.control.value = str(param_value)
+        param_editor.value = str(param_value)
         self.function.set_parameter_value(param_name, param_value)
 
         self.update_function_card()
@@ -863,6 +912,16 @@ class FunctionCard(UserControl):
                         float(text_field_value)
                     except ValueError:
                         error_message = f"Неверный формат числа"
+
+            min_value = e.control.data.get('min')
+            max_value = e.control.data.get('max')
+            if (
+                error_message == ''
+                and min_value and max_value 
+                and text_type in ('int_number', 'number')
+                and (float(text_field_value) < min_value or float(text_field_value) > max_value)
+            ):
+                error_message = f"За границами [{min_value}, {max_value}]"
 
         e.control.error_text = error_message
         e.control.update()

@@ -17,6 +17,7 @@ functions_info = {
             'N': {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 10,
                 "max": 5000,
                 "step": 10,
@@ -61,6 +62,7 @@ functions_info = {
             'N': {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 10,
                 "max": 5000,
                 "step": 10,
@@ -113,6 +115,7 @@ functions_info = {
             'N1': {
                 "type": "slider",
                 "title": "Cмещение от (N1)",
+                'text_type': 'int_number',
                 "min": 0,
                 "max": 5000,
                 "step": 1,
@@ -121,6 +124,7 @@ functions_info = {
             'N2': {
                 "type": "slider",
                 "title": "Cмещение до (N2)",
+                'text_type': 'int_number',
                 "min": 0,
                 "max": 5000,
                 "step": 1,
@@ -149,6 +153,7 @@ functions_info = {
             'N': {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 10,
                 "max": 10000,
                 "step": 10,
@@ -157,6 +162,7 @@ functions_info = {
             'M': {
                 "type": "slider",
                 "title": "Количество выбросов (M)",
+                'text_type': 'int_number',
                 "min": 1,
                 "max": 100,
                 "step": 1,
@@ -238,6 +244,131 @@ functions_info = {
                 'default_value': False
             },
         }
+    },
+
+    'anti_shift': {
+        'function': EditFunctions.anti_shift,
+        'type': 'edit',
+        'name': 'Удаление смещения',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            }
+        }
+    },
+
+    'anti_spike': {
+        'function': EditFunctions.anti_spike,
+        'type': 'edit',
+        'name': 'Удаление выбросов',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'R': {
+                "type": "slider",
+                "title": "Пороговое значение диапозона (R)",
+                "min": 1,
+                "max": 10000,
+                "step": 1,
+                "default_value": 1000,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            }
+        }
+    },
+
+    'anti_trend_linear': {
+        'function': EditFunctions.anti_trend_linear,
+        'type': 'edit',
+        'name': 'Удаление линейного тренда',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            }
+        }
+    },
+
+    'anti_trend_non_linear': {
+        'function': EditFunctions.anti_trend_non_linear,
+        'type': 'edit',
+        'name': 'Удаление НЕ линейного тренда',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'W': {
+                "type": "slider",
+                "title": "Длина скользящего окна (W)",
+                'text_type': 'int_number',
+                "min": 1,
+                "max": 5000,
+                "step": 1,
+                "default_value": 10,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            }
+        }
+    },
+
+    'anti_noise': {
+        'function': EditFunctions.anti_noise,
+        'type': 'edit',
+        'name': 'Gодавления случайного шума',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'M': {
+                "type": "slider",
+                "title": "Число реализаций (M)",
+                'text_type': 'int_number',
+                "min": 1,
+                "max": 10000,
+                "step": 1,
+                "default_value": 10,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            }
+        }
     }
-    
 }

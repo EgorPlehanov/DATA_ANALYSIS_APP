@@ -283,7 +283,7 @@ class EditFunctions:
                 result_df = pd.DataFrame({'x': np.arange(0, N), 'y': first_values.iloc[:N] + second_values.iloc[:N]})
                 result_list.append(DataPrepare.create_result_dict(
                     data=result_df,
-                    type=f"ccf",
+                    type='add_model',
                     initial_data=[first_df_dict, second_df_dict],
                     view_chart=True,
                     view_table_horizontal=show_table_data,
@@ -326,9 +326,155 @@ class EditFunctions:
                 result_df = pd.DataFrame({'x': np.arange(0, N), 'y': first_values.iloc[:N] * second_values.iloc[:N]})
                 result_list.append(DataPrepare.create_result_dict(
                     data=result_df,
-                    type=f"ccf",
+                    type='mult_model',
                     initial_data=[first_df_dict, second_df_dict],
                     view_chart=True,
                     view_table_horizontal=show_table_data,
                 ))
         return result_list
+    
+
+    def anti_shift(data, show_table_data=False):
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+            mean_value = np.mean(y_values)
+            y_values -= mean_value
+
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='anti_shift',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def anti_spike(data, R, show_table_data=False):
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+            N = len(y_values)
+
+            proc_data = np.copy(y_values)
+            for i in range(1, N-1):
+                if abs(y_values[i] - y_values[i-1]) > R and abs(y_values[i] - y_values[i+1]) > R:
+                    proc_data[i] = (y_values[i-1] + y_values[i+1]) / 2
+
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': proc_data})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='anti_spike',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+
+
+    def anti_trend_linear(data, show_table_data=False):
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+            x_values = df.get('x').copy()
+        
+            # Подгонка линейного тренда к данным
+            linear_trend = np.polyfit(x_values, y_values, 1)
+            linear_fit = np.polyval(linear_trend, x_values)
+            
+            # Удаление линейного тренда путем вычитания линейной подгонки
+            detrended_data = y_values - linear_fit
+            
+            # Вычисление первой производной (градиента) отдетрендированных данных
+            derivative = np.gradient(detrended_data)
+
+            proc_data_df = pd.DataFrame({'x': x_values, 'y': derivative})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='anti_trend_linear',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def anti_trend_non_linear(data, W, show_table_data=False):
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+            '''
+            Реализовать выделения и удаления нелинейного тренда методом скользящего среднего из данных аддитивной модели
+            '''
+
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='anti_trend_non_linear',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def anti_noise(data, M, show_table_data=False):
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+            '''
+            Реализовать подавления случайного шума методом накопления
+            '''
+
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='anti_noise',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    

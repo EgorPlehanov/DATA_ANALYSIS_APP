@@ -552,7 +552,7 @@ class FunctionCard(UserControl):
                                 'ref_slider': ref_slider,
                                 'param_name': param_name,
                                 'round_digits': param.get('round_digits', 3),
-                                'text_type': 'number',
+                                'text_type': param.get('text_type','number'),
                                 'min': param.get('min'),
                                 'max': param.get('max'),
                             },

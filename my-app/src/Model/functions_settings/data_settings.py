@@ -57,6 +57,7 @@ functions_info = {
             "N": {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 100,
                 "max": 5000,
                 "step": 100,
@@ -130,6 +131,7 @@ functions_info = {
             "N": {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 100,
                 "max": 5000,
                 "step": 100,
@@ -203,6 +205,7 @@ functions_info = {
             "N": {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 100,
                 "max": 5000,
                 "step": 100,
@@ -225,6 +228,7 @@ functions_info = {
             "N": {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 100,
                 "max": 5000,
                 "step": 10,
@@ -272,6 +276,7 @@ functions_info = {
             "N": {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 100,
                 "max": 5000,
                 "step": 10,
@@ -331,6 +336,7 @@ functions_info = {
             "N": {
                 "type": "slider",
                 "title": "Длина данных (N)",
+                'text_type': 'int_number',
                 "min": 100,
                 "max": 5000,
                 "step": 100,

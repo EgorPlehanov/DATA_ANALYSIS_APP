@@ -32,6 +32,7 @@ functions_info = {
             'M': {
                 "type": "slider",
                 "title": "Количество интервалов (M)",
+                'text_type': 'int_number',
                 "min": 2,
                 "max": 100,
                 "step": 1,
@@ -56,6 +57,7 @@ functions_info = {
             'M': {
                 "type": "slider",
                 "title": "Количество интервалов (M)",
+                'text_type': 'int_number',
                 "min": 1,
                 "max": 100,
                 "step": 1,
@@ -186,6 +188,7 @@ functions_info = {
             'L_window': {
                 "type": "slider",
                 "title": "Длина окна (L_window)",
+                'text_type': 'int_number',
                 "min": 0,
                 "max": 1000,
                 "step": 1,

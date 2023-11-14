@@ -361,7 +361,7 @@ class EditFunctions:
                 result_df = pd.DataFrame({'x': np.arange(0, N), 'y': first_values.iloc[:N] * second_values.iloc[:N]})
                 result_list.append(DataPrepare.create_result_dict(
                     data=result_df,
-                    type='mult_model',
+                    type=f"ccf",
                     initial_data=[first_df_dict, second_df_dict],
                     view_chart=True,
                     view_table_horizontal=show_table_data,
@@ -369,12 +369,7 @@ class EditFunctions:
         return result_list
     
 
-    def anti_shift(data: dict, show_table_data: bool=False):
-        '''
-        Убирает смещение данных
-
-        :param data: Набор данных
-        '''
+    def anti_shift(data, show_table_data=False):
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -400,13 +395,7 @@ class EditFunctions:
         return result_list
     
 
-    def anti_spike(data: dict, R: float, show_table_data: bool=False) -> list:
-        '''
-        Подавляет непровдопадобные значения методом 3-х точечной линейной интерполяции
-
-        :param data: Набор данных
-        :param R: Порог (для сравнения предыдущего и следующего значения с текущим)
-        '''
+    def anti_spike(data, R, show_table_data=False):
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -436,12 +425,7 @@ class EditFunctions:
         return result_list
 
 
-    def anti_trend_linear(data: dict, show_table_data: bool=False):
-        '''
-        Убирает линейный тренд
-
-        :param data: Набор данных
-        '''
+    def anti_trend_linear(data, show_table_data=False):
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -476,17 +460,9 @@ class EditFunctions:
         return result_list
     
 
-    def anti_trend_non_linear(data: dict, W: int, show_table_data: bool=False):
-        '''
-        Убирает нелинейный тренд (метод скользящего среднего)
-
-        :param data: Набор данных
-        :param W: Ширина окна
-        '''
+    def anti_trend_non_linear(data, W, show_table_data=False):
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
-        
-        W = int(W)
         
         result_list = []
         function_data = data.get('value').function.result
@@ -496,9 +472,9 @@ class EditFunctions:
                 continue
             
             y_values = df.get('y').copy()
-            N = len(y_values) - W
-            for n in range(N):
-                y_values[n] -= sum(y_values[n:n+W]) / W
+            '''
+            Реализовать выделения и удаления нелинейного тренда методом скользящего среднего из данных аддитивной модели
+            '''
 
             proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
             result_list.append(DataPrepare.create_result_dict(
@@ -511,13 +487,7 @@ class EditFunctions:
         return result_list
     
 
-    def anti_noise(data: dict, M: dict, R: float, show_table_data: bool=False):
-        '''
-        Убирает случайный шум
-
-        :param data: Набор данных
-        :param M: Количество реализацй случайного шума
-        '''
+    def anti_noise(data, M, show_table_data=False):
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -529,106 +499,16 @@ class EditFunctions:
                 continue
             
             y_values = df.get('y').copy()
-            x_values = df.get('x').copy()
-            N = len(y_values)
+            '''
+            Реализовать подавления случайного шума методом накопления
+            '''
 
-            noised_df = EditFunctions.generate_noise(N, R, x_values=df['x'].values)
-            data_noised_df = pd.concat([df, noised_df]).groupby('x', as_index=False).sum()
-            data_noised_y = data_noised_df.get('y').copy()
-
-            std_deviation = []
-            extra_data = []
-            M_values = [int(m['M']) for m in M.values()]
-            for M in M_values:
-                accumulated_noise = np.zeros(N)
-                for _ in range(M):
-                    accumulated_noise += EditFunctions.generate_noise(N, R)['y']
-
-                norm_noise = accumulated_noise / M
-                denoised_data = norm_noise + y_values
-
-                std_deviation.append(np.std(norm_noise))
-
-                M_denoised_df = pd.DataFrame({'x': x_values, 'y': denoised_data})
-                extra_data.append(DataPrepare.create_result_dict(
-                    data=M_denoised_df,
-                    type=f'anti_noise(M={M})',
-                    view_chart=True,
-                    view_table_horizontal=show_table_data,
-                ))
-
-            extra_data.append(DataPrepare.create_result_dict(
-                data=pd.DataFrame({'M': M_values, 'std': std_deviation}),
-                type='anti_noise_M_std',
-                view_table_horizontal=True,
-            ))
-
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
             result_list.append(DataPrepare.create_result_dict(
-                data=data_noised_df,
+                data=proc_data_df,
                 type='anti_noise',
                 initial_data=[df_dict],
-                extra_data=extra_data,
                 view_chart=True,
                 view_table_horizontal=show_table_data,
             ))
-        return result_list
-    
-
-    def convol_model(first_data: dict, second_data: dict, M: int, show_table_data: bool=False):
-        '''
-        Дискретная светрка
-
-        :param first_data: Первый набор данных
-        :param second_data: Второй набор данных
-        :param M: Ширина окна
-        '''
-        if (
-            first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
-            or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
-        ):
-            return []
-        
-        result_list = []
-        first_function_data = first_data.get('value').function.result
-        second_function_data = second_data.get('value').function.result
-
-        for first_df_dict in first_function_data:
-            first_df = first_df_dict.get('data', None)
-            if first_df is None:
-                continue
-
-            first_values = first_df.get('y').copy()
-            first_N = len(first_values)
-
-            for second_df_dict in second_function_data:
-                second_df = second_df_dict.get('data', None)
-                if second_df is None:
-                    continue
-
-                second_values = second_df.get('y').copy()
-                second_N = len(second_values)
-
-                N = first_N if first_N < second_N else second_N
-                first_values = first_values[:N]
-                second_values = second_values[:N]
-
-                y = np.zeros(N + M - 1)
-
-                for k in range(N + M - 1):
-                    y[k] = sum([
-                        first_values[k - m] * second_values[m]
-                        for m in range(M)
-                        if k - m >= 0 and k - m < N
-                    ])
-
-                y = y[M//2:-M//2]
-                
-                result_df = pd.DataFrame({'x': np.arange(0, len(y)), 'y': y})
-                result_list.append(DataPrepare.create_result_dict(
-                    data=result_df,
-                    type=f"convol_model",
-                    initial_data=[first_df_dict, second_df_dict],
-                    view_chart=True,
-                    view_table_horizontal=show_table_data,
-                ))
         return result_list

@@ -330,10 +330,7 @@ functions_info = {
                 "type": "slider",
                 "title": "Длина скользящего окна (W)",
                 'text_type': 'int_number',
-<<<<<<< HEAD
                 'round_digits': 0,
-=======
->>>>>>> 2c750508b60131ffc942d6fedf2f6874ad58fd35
                 "min": 1,
                 "max": 5000,
                 "step": 1,
@@ -350,11 +347,7 @@ functions_info = {
     'anti_noise': {
         'function': EditFunctions.anti_noise,
         'type': 'edit',
-<<<<<<< HEAD
         'name': 'Подавления случайного шума',
-=======
-        'name': 'Gодавления случайного шума',
->>>>>>> 2c750508b60131ffc942d6fedf2f6874ad58fd35
         'parameters': {
             'data': {
                 "type": "dropdown_function_data",
@@ -363,7 +356,6 @@ functions_info = {
                 "default_value": {'function_name': 'Не выбраны', 'value': []},
                 "default_value_to_print": 'Не выбраны: []',
             },
-<<<<<<< HEAD
             'R': {
                 "type": "slider",
                 "title": "Параметр диапозона (R)",
@@ -423,14 +415,6 @@ functions_info = {
                 'round_digits': 0,
                 "min": 1,
                 "max": 5000,
-=======
-            'M': {
-                "type": "slider",
-                "title": "Число реализаций (M)",
-                'text_type': 'int_number',
-                "min": 1,
-                "max": 10000,
->>>>>>> 2c750508b60131ffc942d6fedf2f6874ad58fd35
                 "step": 1,
                 "default_value": 10,
             },
@@ -438,14 +422,8 @@ functions_info = {
                 "type": "switch",
                 "title": "Показывать таблицу данных?",
                 'default_value': False
-<<<<<<< HEAD
             },
         }
     }
 
-=======
-            }
-        }
-    }
->>>>>>> 2c750508b60131ffc942d6fedf2f6874ad58fd35
 }

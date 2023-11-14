@@ -424,6 +424,97 @@ functions_info = {
                 'default_value': False
             },
         }
-    }
+    },
+
+    'scale_values': {
+        'function': EditFunctions.scale_values,
+        'type': 'edit',
+        'name': 'Нормирование',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'new_min': {
+                "type": "slider",
+                "title": "Новое минимальное значение",
+                "min": -1000,
+                "max": 1000,
+                "step": 0.001,
+                "default_value": -1,
+            },
+            'new_max': {
+                "type": "slider",
+                "title": "Новое максимальное значение",
+                "min": -1000,
+                "max": 1000,
+                "step": 0.001,
+                "default_value": 1,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
+        }
+    },
+
+    'normalize_values': {
+        'function': EditFunctions.normalize_values,
+        'type': 'edit',
+        'name': 'Нормализация',
+        'parameters': {
+            'data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'new_max': {
+                "type": "slider",
+                "title": "Новое максимальное значение",
+                "min": 0.0001,
+                "max": 1000,
+                "step": 0.001,
+                "default_value": 1,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
+        }
+    },
+
+    'extend_model': {
+        'function': EditFunctions.extend_model,
+        'type': 'edit',
+        'name': 'Объединение данных',
+        'parameters': {
+            'first_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'second_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
+        }
+    },
 
 }

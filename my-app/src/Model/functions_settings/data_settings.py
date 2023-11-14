@@ -34,7 +34,7 @@ functions_info = {
                 "type": "slider",
                 "title": "Параметр (a)",
                 "min": 0.01,
-                "max": 5.0,
+                "max": 100,
                 "step": 0.01,
                 "default_value": 0.01,
             },
@@ -49,7 +49,7 @@ functions_info = {
             "step": {
                 "type": "slider",
                 "title": "Шаг по оси x (step)",
-                "min": 1,
+                "min": 0.0001,
                 "max": 10,
                 "step": 1,
                 "default_value": 1,

@@ -632,3 +632,125 @@ class EditFunctions:
                     view_table_horizontal=show_table_data,
                 ))
         return result_list
+    
+
+    def scale_values(data: dict, new_min: float, new_max: float, show_table_data: bool=False):
+        '''
+        Нормирование значений
+
+        :param data: Набор данных
+        :param new_min: Новое минимальное значение
+        :param new_max: Новое максимальное значение
+        '''
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+
+            min_val = np.min(y_values)
+            max_val = np.max(y_values)
+            
+            normalized = new_min + ((y_values - min_val) * (new_max - new_min)) / (max_val - min_val)
+
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': normalized})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='scale_values',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def normalize_values(data: dict, new_max: float, show_table_data: bool=False):
+        '''
+        Нормализация значений
+
+        :param data: Набор данных
+        :param new_min: Новое минимальное значение
+        :param new_max: Новое максимальное значение
+        '''
+        if data.get('function_name') == 'Не выбраны' or not data.get('value'):
+            return []
+        
+        result_list = []
+        function_data = data.get('value').function.result
+        for df_dict in function_data:
+            df = df_dict.get('data', None)
+            if df is None:
+                continue
+            
+            y_values = df.get('y').copy()
+
+            max_val = np.max(y_values)
+            
+            normalized = y_values / max_val * new_max
+
+            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': normalized})
+            result_list.append(DataPrepare.create_result_dict(
+                data=proc_data_df,
+                type='normalize_values',
+                initial_data=[df_dict],
+                view_chart=True,
+                view_table_horizontal=show_table_data,
+            ))
+        return result_list
+    
+
+    def extend_model(first_data: dict, second_data: dict, show_table_data: bool=False):
+        '''
+        Объединение двух наборов данных
+
+        :param first_data: Первый набор данных
+        :param second_data: Второй набор данных
+        :param M: Ширина окна
+        '''
+        if (
+            first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
+            or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
+        ):
+            return []
+        
+        result_list = []
+        first_function_data = first_data.get('value').function.result
+        second_function_data = second_data.get('value').function.result
+
+        for first_df_dict in first_function_data:
+            first_df = first_df_dict.get('data', None)
+            if first_df is None:
+                continue
+
+
+            for second_df_dict in second_function_data:
+                second_df = second_df_dict.get('data', None)
+                if second_df is None:
+                    continue
+
+                first_x = first_df.get('x').copy()
+                second_x = second_df.get('x').copy()
+
+                first_y = first_df.get('y').copy()
+                second_y = second_df.get('y').copy()
+
+                second_x = second_x + np.max(first_x)
+
+                result_x = np.concatenate((first_x[:-1], second_x))
+                result_y = np.concatenate((first_y[:-1], second_y))
+
+                result_df = DataFrame({'x': result_x, 'y': result_y})
+                result_list.append(DataPrepare.create_result_dict(
+                    data=result_df,
+                    type="extend_model",
+                    initial_data=[first_df_dict, second_df_dict],
+                    view_chart=True,
+                    view_table_horizontal=show_table_data,
+                ))
+        return result_list

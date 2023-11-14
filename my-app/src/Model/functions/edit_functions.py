@@ -9,22 +9,34 @@ from ..model_data_preparation import ModelDataPreparation as DataPrepare
 
 
 class EditFunctions:
-    def generate_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
+    def generate_noise(N: int, R: float, delta: float = None, x_values: np.ndarray = None) -> DataFrame:
         '''
         Генерация случайного шума в заданном диапазоне [-R, R]
+
+        :param N: Длина данных
+        :param R: Максимальное значение шума
+        :param delta: Шаг генерации данных
+        :param x_values: Значения x
         '''
         noise_data = np.random.uniform(-R, R, N)
         # Пересчет данных в заданный диапазон R
         min_val, max_val = np.min(noise_data), np.max(noise_data)
         normalized_noise = ((noise_data - min_val) / (max_val - min_val) - 0.5) * 2 * R
         if x_values is None:
+            if delta is None:
+                delta = 1
             x_values = np.arange(0, N * delta, delta)
         return DataFrame({'x': x_values, 'y': normalized_noise})
 
 
-    def noise(data, N, R, delta, show_table_data=False) -> list:
+    def noise(data: dict, N: int, R: float, delta: float, show_table_data: bool=False) -> list:
         '''
         Добавляет шум к выбранному набору данных
+
+        :param data: Набор данных
+        :param N: Длина данных
+        :param R: Максимальное значение шума
+        :param delta: Шаг генерации данных
         '''
         N = int(N)
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
@@ -68,6 +80,11 @@ class EditFunctions:
     def generate_my_noise(N: int, R: float, delta: float, x_values: np.ndarray = None) -> DataFrame:
         '''
         Генерация случайного шума в заданном диапазоне [-R, R] (Моя реализация)
+
+        :param N: Длина данных
+        :param R: Максимальное значение шума
+        :param delta: Шаг генерации данных
+        :param x_values: Значения x
         '''
         current_time = int(time.time())
         random.seed(current_time)
@@ -79,9 +96,14 @@ class EditFunctions:
         return pd.DataFrame({'x': x_values, 'y': custom_noise_data})
 
 
-    def my_noise(data, N, R, delta, show_table_data=False) -> list:
+    def my_noise(data: dict, N: int, R: float, delta: float, show_table_data: bool=False) -> list:
         '''
         Добавляет шум к выбранному набору данных (Моя реализация)
+
+        :param data: Входные данные
+        :param N: Длина данных (Используется для генерации если не задан набор данных)
+        :param R: Максимальное значение шума 
+        :param delta: Шаг генерации данных (Используется для генерации если не задан набор данных)
         '''
         N = int(N)
 
@@ -123,7 +145,7 @@ class EditFunctions:
         return result_list
     
 
-    def shift(data, C, N1, N2, show_table_data=False) -> dict:
+    def shift(data: dict, C: float, N1: int, N2: int, show_table_data: bool=False) -> dict:
         """
         Сдвигает данные data в интервале [N1, N2] на константу C.
 
@@ -131,7 +153,6 @@ class EditFunctions:
         :param C: Значение сдвига
         :param N1: Начальный индекс интервала
         :param N2: Конечный индекс интервала
-        :return: Сдвинутые данные в виде структуры {'data': DataFrame, 'type': 'shift'}
         """
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
@@ -172,6 +193,14 @@ class EditFunctions:
 
 
     def generate_spikes(N: int, M: int, R: float, Rs: float) -> DataFrame:
+        '''
+        Генерирует M случайных выбросов (спайков) на интервале [0, N] со случайными амплитудами
+
+        :param N: Длина данных
+        :param M: Количество выбросов
+        :param R: Опорное значение
+        :param Rs: Диапазон варьирования амплитуды
+        '''
         spike_indices = np.random.choice(N, M, replace=False)
         spike_amplitudes = R + np.random.uniform(-Rs, Rs, M)
         spike_signs = np.random.choice([-1, 1], M)  # Выбираем случайный знак для выбросов
@@ -180,7 +209,7 @@ class EditFunctions:
         return DataFrame({'x': np.arange(N), 'y': data_values})
 
 
-    def spikes(data, N, M, R, Rs, show_table_data=False) -> list:
+    def spikes(data: dict, N: int, M: int, R: float, Rs: float, show_table_data: bool=False) -> list:
         """
         Генерирует M случайных выбросов (спайков) на интервале [0, N] со случайными амплитудами.
 
@@ -248,9 +277,12 @@ class EditFunctions:
         return result_list
     
 
-    def add_model(first_data, second_data, show_table_data=False) -> list:
+    def add_model(first_data: dict, second_data: dict, show_table_data: bool=False) -> list:
         '''
         Поэлементно складывает два набора данных
+
+        :param first_data: Первый набор данных
+        :param second_data: Второй набор данных
         '''
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
@@ -291,9 +323,12 @@ class EditFunctions:
         return result_list
     
 
-    def mult_model(first_data, second_data, show_table_data=False) -> list:
+    def mult_model(first_data: dict, second_data: dict, show_table_data: bool=False) -> list:
         '''
         Поэлементно перемножает два набора данных
+
+        :param first_data: Первый набор данных
+        :param second_data: Второй набор данных
         '''
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
@@ -334,7 +369,12 @@ class EditFunctions:
         return result_list
     
 
-    def anti_shift(data, show_table_data=False):
+    def anti_shift(data: dict, show_table_data: bool=False):
+        '''
+        Убирает смещение данных
+
+        :param data: Набор данных
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -360,7 +400,13 @@ class EditFunctions:
         return result_list
     
 
-    def anti_spike(data, R, show_table_data=False):
+    def anti_spike(data: dict, R: float, show_table_data: bool=False) -> list:
+        '''
+        Подавляет непровдопадобные значения методом 3-х точечной линейной интерполяции
+
+        :param data: Набор данных
+        :param R: Порог (для сравнения предыдущего и следующего значения с текущим)
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -390,7 +436,12 @@ class EditFunctions:
         return result_list
 
 
-    def anti_trend_linear(data, show_table_data=False):
+    def anti_trend_linear(data: dict, show_table_data: bool=False):
+        '''
+        Убирает линейный тренд
+
+        :param data: Набор данных
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -425,9 +476,17 @@ class EditFunctions:
         return result_list
     
 
-    def anti_trend_non_linear(data, W, show_table_data=False):
+    def anti_trend_non_linear(data: dict, W: int, show_table_data: bool=False):
+        '''
+        Убирает нелинейный тренд (метод скользящего среднего)
+
+        :param data: Набор данных
+        :param W: Ширина окна
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
+        
+        W = int(W)
         
         result_list = []
         function_data = data.get('value').function.result
@@ -437,9 +496,9 @@ class EditFunctions:
                 continue
             
             y_values = df.get('y').copy()
-            '''
-            Реализовать выделения и удаления нелинейного тренда методом скользящего среднего из данных аддитивной модели
-            '''
+            N = len(y_values) - W
+            for n in range(N):
+                y_values[n] -= sum(y_values[n:n+W]) / W
 
             proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
             result_list.append(DataPrepare.create_result_dict(
@@ -452,7 +511,13 @@ class EditFunctions:
         return result_list
     
 
-    def anti_noise(data, M, show_table_data=False):
+    def anti_noise(data: dict, M: dict, R: float, show_table_data: bool=False):
+        '''
+        Убирает случайный шум
+
+        :param data: Набор данных
+        :param M: Количество реализацй случайного шума
+        '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
         
@@ -464,17 +529,106 @@ class EditFunctions:
                 continue
             
             y_values = df.get('y').copy()
-            '''
-            Реализовать подавления случайного шума методом накопления
-            '''
+            x_values = df.get('x').copy()
+            N = len(y_values)
 
-            proc_data_df = pd.DataFrame({'x': df.get('x').copy(), 'y': y_values})
+            noised_df = EditFunctions.generate_noise(N, R, x_values=df['x'].values)
+            data_noised_df = pd.concat([df, noised_df]).groupby('x', as_index=False).sum()
+            data_noised_y = data_noised_df.get('y').copy()
+
+            std_deviation = []
+            extra_data = []
+            M_values = [int(m['M']) for m in M.values()]
+            for M in M_values:
+                accumulated_noise = np.zeros(N)
+                for _ in range(M):
+                    accumulated_noise += EditFunctions.generate_noise(N, R)['y']
+
+                norm_noise = accumulated_noise / M
+                denoised_data = norm_noise + y_values
+
+                std_deviation.append(np.std(norm_noise))
+
+                M_denoised_df = pd.DataFrame({'x': x_values, 'y': denoised_data})
+                extra_data.append(DataPrepare.create_result_dict(
+                    data=M_denoised_df,
+                    type=f'anti_noise(M={M})',
+                    view_chart=True,
+                    view_table_horizontal=show_table_data,
+                ))
+
+            extra_data.append(DataPrepare.create_result_dict(
+                data=pd.DataFrame({'M': M_values, 'std': std_deviation}),
+                type='anti_noise_M_std',
+                view_table_horizontal=True,
+            ))
+
             result_list.append(DataPrepare.create_result_dict(
-                data=proc_data_df,
+                data=data_noised_df,
                 type='anti_noise',
                 initial_data=[df_dict],
+                extra_data=extra_data,
                 view_chart=True,
                 view_table_horizontal=show_table_data,
             ))
         return result_list
     
+
+    def convol_model(first_data: dict, second_data: dict, M: int, show_table_data: bool=False):
+        '''
+        Дискретная светрка
+
+        :param first_data: Первый набор данных
+        :param second_data: Второй набор данных
+        :param M: Ширина окна
+        '''
+        if (
+            first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
+            or second_data.get('function_name') == 'Не выбраны' or not second_data.get('value')
+        ):
+            return []
+        
+        result_list = []
+        first_function_data = first_data.get('value').function.result
+        second_function_data = second_data.get('value').function.result
+
+        for first_df_dict in first_function_data:
+            first_df = first_df_dict.get('data', None)
+            if first_df is None:
+                continue
+
+            first_values = first_df.get('y').copy()
+            first_N = len(first_values)
+
+            for second_df_dict in second_function_data:
+                second_df = second_df_dict.get('data', None)
+                if second_df is None:
+                    continue
+
+                second_values = second_df.get('y').copy()
+                second_N = len(second_values)
+
+                N = first_N if first_N < second_N else second_N
+                first_values = first_values[:N]
+                second_values = second_values[:N]
+
+                y = np.zeros(N + M - 1)
+
+                for k in range(N + M - 1):
+                    y[k] = sum([
+                        first_values[k - m] * second_values[m]
+                        for m in range(M)
+                        if k - m >= 0 and k - m < N
+                    ])
+
+                y = y[M//2:-M//2]
+                
+                result_df = pd.DataFrame({'x': np.arange(0, len(y)), 'y': y})
+                result_list.append(DataPrepare.create_result_dict(
+                    data=result_df,
+                    type=f"convol_model",
+                    initial_data=[first_df_dict, second_df_dict],
+                    view_chart=True,
+                    view_table_horizontal=show_table_data,
+                ))
+        return result_list

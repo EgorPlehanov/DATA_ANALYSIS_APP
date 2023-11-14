@@ -23,8 +23,8 @@ class ModelDataPreparation:
     def create_result_dict(
             data: DataFrame = None,
             type: str = None,
-            initial_data: dict = None,
-            extra_data: dict = None,
+            initial_data: list[dict] = None,
+            extra_data: list[dict] = None,
             error_message: str = None,
             view_chart: bool = None,
             view_histogram: bool = None,
@@ -39,9 +39,13 @@ class ModelDataPreparation:
             result_dict['data'] = ModelDataPreparation.round_and_clip_dataframe(data)
             
         if initial_data:
+            if not isinstance(initial_data, list):
+                initial_data = [initial_data]
             result_dict['initial_data'] = initial_data
 
         if extra_data:
+            if not isinstance(extra_data, list):
+                extra_data = [extra_data]
             result_dict['extra_data'] = extra_data
 
         if type:

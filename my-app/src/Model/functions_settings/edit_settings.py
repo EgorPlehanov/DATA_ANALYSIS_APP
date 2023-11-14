@@ -330,6 +330,7 @@ functions_info = {
                 "type": "slider",
                 "title": "Длина скользящего окна (W)",
                 'text_type': 'int_number',
+                'round_digits': 0,
                 "min": 1,
                 "max": 5000,
                 "step": 1,
@@ -346,7 +347,7 @@ functions_info = {
     'anti_noise': {
         'function': EditFunctions.anti_noise,
         'type': 'edit',
-        'name': 'Gодавления случайного шума',
+        'name': 'Подавления случайного шума',
         'parameters': {
             'data': {
                 "type": "dropdown_function_data",
@@ -355,14 +356,30 @@ functions_info = {
                 "default_value": {'function_name': 'Не выбраны', 'value': []},
                 "default_value_to_print": 'Не выбраны: []',
             },
-            'M': {
+            'R': {
                 "type": "slider",
-                "title": "Число реализаций (M)",
-                'text_type': 'int_number',
-                "min": 1,
-                "max": 10000,
-                "step": 1,
-                "default_value": 10,
+                "title": "Параметр диапозона (R)",
+                "min": 0.1,
+                "max": 1000.0,
+                "step": 0.1,
+                "default_value": 0.1,
+            },
+            'M': {
+                "type": "textfields_datatable",
+                "title": "Кол-во осреднений (M)",
+                "columns": {
+                    "M": {
+                        'name': 'M',
+                        'tooltip': 'Кол-во осреднений',
+                    },
+                },
+                "default_value": {
+                    0: {"M": 1},
+                    1: {"M": 10},
+                    2: {"M": 100},
+                    3: {"M": 1000},
+                    4: {"M": 10000},
+                },
             },
             'show_table_data': {
                 "type": "switch",
@@ -370,5 +387,43 @@ functions_info = {
                 'default_value': False
             }
         }
+    },
+
+    'convol_model': {
+        'function': EditFunctions.convol_model,
+        'type': 'edit',
+        'name': 'Свёртка',
+        'parameters': {
+            'first_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'second_data': {
+                "type": "dropdown_function_data",
+                "title": "Выбор набора данных",
+                "options": {'Не выбраны': {'function_name': 'Не выбраны', 'value': []}},
+                "default_value": {'function_name': 'Не выбраны', 'value': []},
+                "default_value_to_print": 'Не выбраны: []',
+            },
+            'M': {
+                "type": "slider",
+                "title": "Длина скользящего окна (W)",
+                'text_type': 'int_number',
+                'round_digits': 0,
+                "min": 1,
+                "max": 5000,
+                "step": 1,
+                "default_value": 10,
+            },
+            'show_table_data': {
+                "type": "switch",
+                "title": "Показывать таблицу данных?",
+                'default_value': False
+            },
+        }
     }
+
 }

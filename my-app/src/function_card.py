@@ -793,8 +793,10 @@ class FunctionCard(UserControl):
     def _update_slider_textfield(self, e) -> None:
         '''Обновляет значение в textfield значением slider.value'''
         textfield = e.control.data.get('ref_textfield').current
-        round_digits = e.control.data.get('round_digits')
-        textfield.value = round(e.control.value, round_digits) if round_digits > 0 else int(float(e.control.value))
+        round_digits = e.control.data.get('round_digits', 3)
+        param_value_type = e.control.data.get('text_type', 'number')
+        textfield.value = round(e.control.value, round_digits) \
+            if round_digits > 0 and param_value_type != 'int_number' else int(float(e.control.value))
         textfield.update()
 
 
@@ -813,7 +815,9 @@ class FunctionCard(UserControl):
 
         param_name = e.control.data.get('param_name')
         round_digits = e.control.data.get('round_digits', 3)
-        param_value = int(float(e.control.value) * 10**round_digits) / 10**round_digits if round_digits > 0 else int(float(e.control.value))
+        param_value_type = e.control.data.get('text_type', 'number')
+        param_value = int(float(e.control.value) * 10**round_digits) / 10**round_digits \
+            if round_digits > 0 and param_value_type != 'int_number' else int(float(e.control.value))
 
         e.control.value = str(param_value)
         param_editor.value = str(param_value)
@@ -1191,27 +1195,29 @@ class FunctionCard(UserControl):
             element_controls.append(
                 self._get_result_error_message(error_message)
             )
-        
-        view_list = dataframe.get('view', [])
-        if 'chart' in view_list:
-            element_controls.append(self._get_function_result_graphic(dataframe, color=color))
-        if 'histogram' in view_list:
-            element_controls.append(self._get_function_result_histogram(dataframe, color=color))
-        if 'table_data' in view_list:
-            element_controls.append(self._get_datatable_data(dataframe))
-        if 'table_statistics' in view_list:
-            element_controls.append(self._get_datatable_statistics(dataframe))
+            
+        if dataframe.get('data') is not None:
+            view_list = dataframe.get('view', [])
+            if 'chart' in view_list:
+                element_controls.append(self._get_function_result_graphic(dataframe, color=color))
+            if 'histogram' in view_list:
+                element_controls.append(self._get_function_result_histogram(dataframe, color=color))
+            if 'table_data' in view_list:
+                element_controls.append(self._get_datatable_data(dataframe))
+            if 'table_statistics' in view_list:
+                element_controls.append(self._get_datatable_statistics(dataframe))
 
         extra_data = dataframe.get('extra_data')
         if extra_data:
-            extra_data_name = extra_data.get('type')
-            extra_data_control = self._get_result_element_view(extra_data, color=color)
-            extra_data_view = self._get_dropdown_conteiner_for_control(
-                control=extra_data_control,
-                button_name=f"Показать дополнительные данные:{(f' ***{extra_data_name.strip()}***')}",
-                is_open=False,
-            )
-            element_controls.append(extra_data_view)
+            for data in extra_data:
+                extra_data_name = data.get('type')
+                extra_data_control = self._get_result_element_view(data, color=color)
+                extra_data_view = self._get_dropdown_conteiner_for_control(
+                    control=extra_data_control,
+                    button_name=f"Показать дополнительные данные:{(f' ***{extra_data_name.strip()}***')}",
+                    is_open=False,
+                )
+                element_controls.append(extra_data_view)
 
         initial_data = dataframe.get('initial_data')
         if initial_data:

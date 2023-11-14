@@ -62,7 +62,8 @@ class Function:
         if not parameters:
             self.result = []
         else:
-            try:
-                self.result = self.function(**parameters)
-            except Exception as e:
-                self.result = [{"type": "error", "error_message": f"При расчете функции {self.name} возникла ошибка: {str(e)}"}]
+            self.result = self.function(**parameters)
+            # try:
+            #     self.result = self.function(**parameters)
+            # except Exception as e:
+            #     self.result = [{"type": "error", "error_message": f"При расчете функции {self.name} возникла ошибка: {str(e)}"}]

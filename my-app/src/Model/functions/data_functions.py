@@ -7,38 +7,34 @@ from ..model_data_preparation import ModelDataPreparation as DataPrepare
 
 
 class DataFunctions:
-    def trend_function_linear_rising(t, a, b):
-        '''Расчет линейно возрастающего тренда'''
-        return a * t + b
-
-    def trend_function_linear_falling(t, a, b):
-        '''Расчет линейно убывающего тренда'''
-        return -a * t + b
-
-    def trend_function_nonlinear_rising(t, a, b):
-        '''Расчет нелинейно возрастающего тренда'''
-        return b * np.exp(a * t)
-
-    def trend_function_nonlinear_falling(t, a, b):
-        '''Расчет нелинейно убывающего тренда'''
-        return b * np.exp(-a * t)
-
-
-    def trend(type, a, b, step, N, show_table_data=False) -> list:
+    def trend(type: str, a: float, b: float, step: float, N: int, show_table_data: bool=False) -> list:
         '''
         Создает графики тренда
-        '''
-        t = np.arange(0, N * step, step)
-        data = None
 
-        if type == "linear_rising":
-            data = DataFunctions.trend_function_linear_rising(t, a, b)
-        elif type == "linear_falling":
-            data = DataFunctions.trend_function_linear_falling(t, a, b)
-        elif type == "nonlinear_rising":
-            data = DataFunctions.trend_function_nonlinear_rising(t, a, b)
-        elif type == "nonlinear_falling":
-            data = DataFunctions.trend_function_nonlinear_falling(t, a, b)
+        :param type: Тип тренда
+        :param a: Коэффициент a
+        :param b: Коэффициент b
+        :param step: Шаг генерации данных
+        :param N: Длина данных
+
+        trend types:
+            linear_rising - Линейно восходящий
+            linear_falling - Линейно нисходящий
+            nonlinear_rising - Нелинейно восходящий
+            nonlinear_falling - Нелинейно нисходящий
+        '''
+        trend_type_to_function = {
+            "linear_rising": lambda t, a, b: a * t + b,
+            "linear_falling": lambda t, a, b: -a * t + b,
+            "nonlinear_rising": lambda t, a, b: b * np.exp(a * t),
+            "nonlinear_falling": lambda t, a, b: b * np.exp(-a * t),
+        }
+
+        t = np.arange(0, N * step, step)
+
+        data = None
+        if type in trend_type_to_function:
+            data = trend_type_to_function[type](t, a, b)
 
         df = pd.DataFrame({'x': t, 'y': data})
         return DataPrepare.create_result_dict(
@@ -50,9 +46,15 @@ class DataFunctions:
         )
     
 
-    def multi_trend(type_list, a, b, step, N, show_table_data=False) -> list:
+    def multi_trend(type_list: list, a: float, b: float, step: float, N: int, show_table_data: bool=False) -> list:
         '''
         Создает графики нескольких функций тренда
+
+        :param type_list: Список типов функций тренда
+        :param a: Коэффициент a
+        :param b: Коэффициент b
+        :param step: Шаг генерации данных
+        :param N: Длина данных
         '''
         if len(type_list) == 0:
             return DataPrepare.create_result_dict(error_message="Нет данных для построения графика", in_list=True)
@@ -63,9 +65,15 @@ class DataFunctions:
         return df_list
     
 
-    def combinate_trend(type_list, a, b, step, N, show_table_data=False) -> list:
+    def combinate_trend(type_list: list, a: float, b: float, step: float, N: int, show_table_data: bool=False) -> list:
         '''
         Создает график комбинированной функции тренда
+
+        :param type_list: Список типов функций тренда
+        :param a: Коэффициент a
+        :param b: Коэффициент b
+        :param step: Шаг генерации данных
+        :param N: Длина данных
         '''
         num_parts = len(type_list)
         if num_parts == 0:
@@ -108,9 +116,13 @@ class DataFunctions:
         )
     
 
-    def custom_function(expression, N, step, show_table_data=False) -> list:
+    def custom_function(expression: str, N: int, step: int, show_table_data: bool=False) -> list:
         '''
         Создает набор данных по расчетной функции
+
+        :param expression: Расчетная функция
+        :param N: Длина данных
+        :param step: Шаг генерации данных
         '''
         if not expression:
             return DataPrepare.create_result_dict(error_message="Не задана расчетная функция", in_list=True)
@@ -134,9 +146,11 @@ class DataFunctions:
         )
 
 
-    def data_download(input_data, show_table_data=False) -> list:
+    def data_download(input_data: list, show_table_data: bool=False) -> list:
         '''
         Обрабатывает данные из файлов
+
+        :param input_data: Список файлов
         '''
         if not (len(input_data) > 0 and isinstance(input_data[0], dict)):
             return DataPrepare.create_result_dict(in_list=True)
@@ -207,6 +221,11 @@ class DataFunctions:
     def harm(N: int, A0: float, f0: float, delta_t: float, show_table_data=False) -> list:
         '''
         Создает гармонический процесс
+
+        :param N: Длина данных
+        :param A0: Амплитуда
+        :param f0: Частота
+        :param delta_t: Шаг генерации данных
         '''
         error_message = None
         if delta_t > 1 / (2 * f0):
@@ -229,6 +248,10 @@ class DataFunctions:
     def poly_harm(N: int, A_f_data: list, delta_t: float, show_table_data=False) -> list:
         '''
         Создает полигормонический процесс
+
+        :param N: Длина данных
+        :param A_f_data: Список Амплитуд и Частот
+        :param delta_t: Шаг генерации данных
         '''
         if len(A_f_data) == 0:
             return DataPrepare.create_result_dict(error_message="Нет данных об амплитуде и частоте для построения графика", in_list=True)

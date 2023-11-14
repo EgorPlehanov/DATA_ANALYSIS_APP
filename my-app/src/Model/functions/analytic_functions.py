@@ -1,17 +1,15 @@
 import numpy as np
 import pandas as pd
-import re
 
 from ..model_data_preparation import ModelDataPreparation as DataPrepare
 
 
 class AnalyticFunctions:
-    def statistics(data) -> list:
+    def statistics(data: dict) -> list:
         """
         Рассчитывает статистические характеристики данных.
 
         :param data: Данные для анализа (представленные в виде DataFrame)
-        :return: DataFrame с рассчитанными статистическими характеристиками
         """
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
@@ -61,13 +59,12 @@ class AnalyticFunctions:
         return result_list
     
 
-    def stationarity(data, M) -> list:
+    def stationarity(data: dict, M: int) -> list:
         """
         Оценивает стационарность данных.
 
         :param data: Данные для анализа (представленные в виде DataFrame)
         :param M: Количество интервалов
-        :return: True, если данные стационарны, иначе False
         """
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
@@ -126,9 +123,13 @@ class AnalyticFunctions:
         return result_list
     
     
-    def hist(data, M, is_density=True, show_table_data=False) -> list:
+    def hist(data: dict, M: int, is_density: bool=True, show_table_data: bool=False) -> list:
         '''
         Строит графики функции плотности распределения вероятностей
+
+        :param data: Набор данных
+        :param M: Количество интервалов
+        :param is_density: True - строить график плотности, False - гистограмму количества
         '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
@@ -158,9 +159,12 @@ class AnalyticFunctions:
         return result_list
     
 
-    def acf(data, function_type, show_table_data=False) -> list:
+    def acf(data: dict, function_type: str, show_table_data: bool=False) -> list:
         '''
         Автокорреляция/Ковариация
+
+        :param data: Набор данных
+        :param function_type: Тип функции (Автокорреляция/Ковариация)
         '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
@@ -198,9 +202,12 @@ class AnalyticFunctions:
         return result_list
     
 
-    def ccf(first_data, second_data, show_table_data=False) -> list:
+    def ccf(first_data: dict, second_data: dict, show_table_data: bool=False) -> list:
         '''
         Кросс-корреляция
+
+        :param first_data: Первый набор данных
+        :param second_data: Второй набор данных
         '''
         if (
             first_data.get('function_name') == 'Не выбраны' or not first_data.get('value')
@@ -250,9 +257,11 @@ class AnalyticFunctions:
         return result_list
     
 
-    def get_fourier(y_values) -> pd.DataFrame:
+    def get_fourier(y_values: np.array) -> pd.DataFrame:
         '''
         Вычисление прямого преобразования Фурье
+
+        :param y_values: Список значений
         '''
         N = len(y_values)
 
@@ -270,9 +279,11 @@ class AnalyticFunctions:
         return pd.DataFrame({'Re[Xn]': real_part, 'Im[Xn]': imag_part, '|Xn|': X_amp})
 
 
-    def fourier(data, show_table_data=False, show_calculation_table=False) -> list:
+    def fourier(data: dict, show_table_data: bool=False, show_calculation_table: bool=False) -> list:
         '''
         Построение прямого преобразования Фурье
+
+        :param data: Набор данных
         '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []
@@ -307,9 +318,13 @@ class AnalyticFunctions:
         return result_list
     
 
-    def spectr_fourier(data={}, delta_t=None, L_window=0, show_table_data=False) -> list:
+    def spectr_fourier(data: dict, delta_t: float=None, L_window: int=0, show_table_data: bool=False) -> list:
         '''
         Построение амплитудного спектра Фурье на основе прямого преобразования Фурье
+
+        :param data: Набор данных
+        :param delta_t: Шаг генерации данных
+        :param L_window: Ширина окна
         '''
         if data.get('function_name') == 'Не выбраны' or not data.get('value'):
             return []

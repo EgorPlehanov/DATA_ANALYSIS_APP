@@ -79,6 +79,13 @@ class DataFunctions:
         if num_parts == 0:
             return DataPrepare.create_result_dict(error_message="Нет данных для построения графика", in_list=True)
 
+        trend_type_to_function = {
+            "linear_rising": lambda t, a, b: a * t + b,
+            "linear_falling": lambda t, a, b: -a * t + b,
+            "nonlinear_rising": lambda t, a, b: b * np.exp(a * t),
+            "nonlinear_falling": lambda t, a, b: b * np.exp(-a * t),
+        }
+
         # Разделить период t на равные части
         t_parts = np.array_split(np.arange(0, N * step, step), num_parts)
 
@@ -87,15 +94,12 @@ class DataFunctions:
         for i, type in enumerate(type_list):
             # Сгенерировать данные для каждой части
             data = []
-            if type == "linear_rising":
-                data = DataFunctions.trend_function_linear_rising(t_parts[i], a, b)
-            elif type == "linear_falling":
-                data = DataFunctions.trend_function_linear_falling(t_parts[i], a, b)
-            elif type == "nonlinear_rising":
-                data = DataFunctions.trend_function_nonlinear_rising(t_parts[i], a, b)
-            elif type == "nonlinear_falling":
-                data = DataFunctions.trend_function_nonlinear_falling(t_parts[i], a, b)
 
+            if type not in trend_type_to_function:
+                continue
+            data = trend_type_to_function[type](t_parts[i], a, b)
+
+            # Смещение начала графика до уровня конца предыдущей части
             if previous_end_value is not None:
                 shift = previous_end_value - data[0]
                 data = [value + shift for value in data]

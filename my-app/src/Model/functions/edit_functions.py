@@ -527,29 +527,27 @@ class EditFunctions:
             df = df_dict.get('data', None)
             if df is None:
                 continue
-            
+
             y_values = df.get('y').copy()
             x_values = df.get('x').copy()
             N = len(y_values)
 
-            noised_df = EditFunctions.generate_noise(N, R, x_values=df['x'].values)
-            data_noised_df = pd.concat([df, noised_df]).groupby('x', as_index=False).sum()
-            data_noised_y = data_noised_df.get('y').copy()
-
-            std_deviation = []
             extra_data = []
-            M_values = [int(m['M']) for m in M.values()]
+            std_deviation = []
+            M_values = sorted([int(m['M']) for m in M.values()])
             for M in M_values:
-                accumulated_noise = np.zeros(N)
+                
+                denoised_y = np.zeros(N)
                 for _ in range(M):
-                    accumulated_noise += EditFunctions.generate_noise(N, R)['y']
+                    noise = EditFunctions.generate_noise(N, R)['y']
+                    denoised_y += noise + y_values.copy()
+                denoised_y = denoised_y / (M)
 
-                norm_noise = accumulated_noise / M
-                denoised_data = norm_noise + y_values
+                # Расчет стандартной ошибки
+                std_deviation.append(np.std(denoised_y))
 
-                std_deviation.append(np.std(norm_noise))
-
-                M_denoised_df = pd.DataFrame({'x': x_values, 'y': denoised_data})
+                # Добавление расчета для M случайных шумов
+                M_denoised_df = pd.DataFrame({'x': x_values, 'y': denoised_y})
                 extra_data.append(DataPrepare.create_result_dict(
                     data=M_denoised_df,
                     type=f'anti_noise(M={M})',
@@ -557,16 +555,54 @@ class EditFunctions:
                     view_table_horizontal=show_table_data,
                 ))
 
+            # Добавление статистических данных
             extra_data.append(DataPrepare.create_result_dict(
                 data=pd.DataFrame({'M': M_values, 'std': std_deviation}),
                 type='anti_noise_M_std',
                 view_table_horizontal=True,
             ))
 
+
+            
+            # y_values = df.get('y').copy()
+            # x_values = df.get('x').copy()
+            # N = len(y_values)
+
+            # noised_df = EditFunctions.generate_noise(N, R, x_values=df['x'].values)
+            # data_noised_df = pd.concat([df, noised_df]).groupby('x', as_index=False).sum()
+            # data_noised_y = data_noised_df.get('y').copy()
+
+            # std_deviation = []
+            # extra_data = []
+            # M_values = [int(m['M']) for m in M.values()]
+            # for M in M_values:
+            #     accumulated_noise = np.zeros(N)
+            #     for _ in range(M):
+            #         accumulated_noise += EditFunctions.generate_noise(N, R)['y']
+
+            #     norm_noise = accumulated_noise / M
+            #     denoised_data = norm_noise + y_values
+
+            #     std_deviation.append(np.std(norm_noise))
+
+            #     M_denoised_df = pd.DataFrame({'x': x_values, 'y': denoised_data})
+            #     extra_data.append(DataPrepare.create_result_dict(
+            #         data=M_denoised_df,
+            #         type=f'anti_noise(M={M})',
+            #         view_chart=True,
+            #         view_table_horizontal=show_table_data,
+            #     ))
+
+            # extra_data.append(DataPrepare.create_result_dict(
+            #     data=pd.DataFrame({'M': M_values, 'std': std_deviation}),
+            #     type='anti_noise_M_std',
+            #     view_table_horizontal=True,
+            # ))
+
             result_list.append(DataPrepare.create_result_dict(
-                data=data_noised_df,
+                data=df,
                 type='anti_noise',
-                initial_data=[df_dict],
+                # initial_data=[df_dict],
                 extra_data=extra_data,
                 view_chart=True,
                 view_table_horizontal=show_table_data,
@@ -612,9 +648,9 @@ class EditFunctions:
                 first_values = first_values[:N]
                 second_values = second_values[:N]
 
-                y = np.zeros(N + M - 1)
+                y = np.zeros(N + M)
 
-                for k in range(N + M - 1):
+                for k in range(N + M):
                     y[k] = sum([
                         first_values[k - m] * second_values[m]
                         for m in range(M)
